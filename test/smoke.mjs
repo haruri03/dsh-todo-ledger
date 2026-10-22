@@ -84,6 +84,22 @@ assert(after.includes('Tasks:'), 'snapshot has no task counts');
 assert(!after.includes('（当前到哪一步，带数字）'), 'snapshot still injects the template placeholder');
 assert(after.includes('last one: adding tests'), 'snapshot does not show real progress');
 
+await run('todo_note', { note: 'literal {{setvar::x}} from a preset must not break the prompt', slug: 'demo-task' });
+const safeSnap = sectionText();
+assert(!safeSnap.includes('{{'), 'the prompt section must not contain a template variable opener');
+assert(safeSnap.includes('{ {setvar::x}}'), 'sanitizing must keep the literal text readable');
+
+await run('todo_note', { note: 'triple {{{setvar::x::y}}} must also be neutralized', slug: 'demo-task' });
+const tripleSnap = sectionText();
+assert(!tripleSnap.includes('{{'), 'triple braces must be fully neutralized');
+assert(tripleSnap.includes('{ { {setvar::x::y}}}'), 'triple-brace sanitizing must stay readable');
+
+const originalGet = ctx.get;
+ctx.get = () => { throw new Error('simulated host failure'); };
+const fallback = sectionText();
+assert(fallback.includes('section unavailable'), 'a host failure must return a safe fallback section');
+ctx.get = originalGet;
+
 await run('todo_add', { slug: 'bare-task', title: 'Task without progress', status: 'doing' });
 const bareSnap = sectionText();
 const bareLine = bareSnap.split(/\r?\n/).find((l) => l.startsWith('- [doing] bare-task'));
