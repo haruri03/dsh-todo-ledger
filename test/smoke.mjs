@@ -87,6 +87,8 @@ assert(after.includes('last one: adding tests'), 'snapshot does not show real pr
 await run('todo_note', { note: 'literal {{setvar::x}} from a preset must not break the prompt', slug: 'demo-task' });
 const safeSnap = sectionText();
 assert(!safeSnap.includes('{{'), 'the prompt section must not contain a template variable opener');
+assert(safeSnap.includes('[Ledger integrity warning]'), 'the prompt section must flag the unsafe agent write');
+assert(safeSnap.includes('demo-task.md:'), 'the integrity warning must name the file to rewrite');
 assert(safeSnap.includes('{ {setvar::x}}'), 'sanitizing must keep the literal text readable');
 
 await run('todo_note', { note: 'triple {{{setvar::x::y}}} must also be neutralized', slug: 'demo-task' });
