@@ -1,0 +1,43 @@
+{
+  "name": "dsh-todo-ledger",
+  "version": "0.1.0",
+  "description": "todo-ledger for DeepSeek Harness: resident prompt section plus native tools that keep authoritative task state and cross-session context in the repo's ledger directory — `_todo/` preferred, legacy `todo/` still supported (todo.md + tasks.md + tasks/*.md + archived/ + context/).",
+  "type": "module",
+  "license": "MIT",
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE",
+    "README_zh.md"
+  ],
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "todo",
+    "task-management",
+    "context"
+  ],
+  "main": "./lib/index.js",
+  "exports": {
+    ".": "./lib/index.js"
+  },
+  "engines": {
+    "node": ">=22",
+    "dsh": ">=0.1.0-0 <0.3.0-0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/haruri03/dsh-todo-ledger.git"
+  },
+  "homepage": "https://github.com/haruri03/dsh-todo-ledger#readme",
+  "bugs": {
+    "url": "https://github.com/haruri03/dsh-todo-ledger/issues"
+  }
+}

@@ -1,0 +1,12 @@
+# dsh-todo-ledger bundle patch
+#
+# Mounts a host-level plugin: an always-on prompt section (rules + current todo snapshot) plus native todo tools.
+# Relative paths resolve against this patch file, so they keep working after install into a profile's node_modules.
+- insert:
+    - id: todo-ledger
+      name: './lib/index.js'
+      config:
+        # Optional: pin the repo root (the directory containing todo/). Unset, the ledger is found upward from the session working directory.
+        # root: <repo-root>
+        sectionOrder: 180
+        maxSnapshotChars: 4000
