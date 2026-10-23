@@ -1,5 +1,7 @@
 # dsh-todo-ledger
 
+[![release](https://img.shields.io/github/v/release/haruri03/dsh-todo-ledger?sort=semver)](https://github.com/haruri03/dsh-todo-ledger/releases) [![license](https://img.shields.io/github/license/haruri03/dsh-todo-ledger)](LICENSE)
+
 [English](README.md) | [中文](README_zh.md)
 
 Repository: https://github.com/haruri03/dsh-todo-ledger
