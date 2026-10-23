@@ -48,7 +48,19 @@ plugin_manager install_bundle --target "git+https://github.com/haruri03/dsh-todo
 dsh plugin --profile <profile> add "git+https://github.com/haruri03/dsh-todo-ledger.git"
 ```
 
-也支持 npm 包名与 tarball URL。更新时先卸载再安装，或等待上游发版。
+### 从 npm 安装
+
+包已发布为 `dsh-todo-ledger`，直接写包名即可：
+
+```powershell
+plugin_manager install_bundle --target "dsh-todo-ledger"
+```
+
+```powershell
+dsh plugin --profile <profile> add dsh-todo-ledger
+```
+
+也支持 tarball URL。更新时先卸载再安装，或等待上游发版。
 
 装好后新会话的系统提示里会出现「【todo-ledger · 跨会话任务与上下文】」段；工具列表里多出
 `todo_list / todo_add / todo_show / todo_status / todo_complete / todo_archive / todo_note / todo_checkpoint / todo_snapshot / todo_doctor / todo_init`。

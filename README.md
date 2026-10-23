@@ -52,8 +52,19 @@ The same operation is available to humans through the Web plugin page ("Add plug
 dsh plugin --profile <profile> add "git+https://github.com/haruri03/dsh-todo-ledger.git"
 ```
 
-npm package names and tarball URLs are also accepted. To update, remove and reinstall, or wait for an
-upstream release.
+### Install from npm
+
+The package is published as `dsh-todo-ledger`, so the npm name alone installs it:
+
+```powershell
+plugin_manager install_bundle --target "dsh-todo-ledger"
+```
+
+```powershell
+dsh plugin --profile <profile> add dsh-todo-ledger
+```
+
+Tarball URLs are accepted too. To update, remove and reinstall, or wait for an upstream release.
 
 After installation, every new session carries a `[todo-ledger · cross-session tasks and context]`
 prompt section, and the tool list gains:
