@@ -220,9 +220,7 @@ window.__ModuleLoader__.load({
             const query = new URLSearchParams({ slug });
             if (sessionId) query.set('sessionId', sessionId);
             const response = await fetch(`${ROUTE.replace('projection', 'complete')}?${query.toString()}`, {
-              method: 'POST',
-              headers: { 'content-type': 'application/json' },
-              body: JSON.stringify({ slug, sessionId }),
+              headers: { accept: 'application/json' },
             });
             const body = await response.json().catch(() => ({}));
             if (!response.ok || body.ok !== true) throw new Error(body.message ?? `HTTP ${response.status}`);
