@@ -116,7 +116,7 @@ Every tool accepts an optional `root`, so it can operate on repositories outside
 
 ## Sidebar panel
 
-![The ledger panel in the sidebar: in progress, to do, awaiting review with an Accept button, and blocked](assets/panel.png)
+<img src="assets/sidebar-panel.png" width="420" alt="The sidebar ledger panel: in progress, to do, awaiting review with an Accept button, and blocked">
 
 The plugin also serves a sidebar panel for the ledger of the current session working directory:
 browsing is read-only, and the panel's only action is accepting a review task. It is opt-in: nothing is injected into the layout until a user opens the panel from the
@@ -142,6 +142,8 @@ its header to move it and drag the bottom-right grip to resize it. It is an addi
 the ledger; the original right-sidebar panel remains available. The floating panel's labels follow
 the host locale, and its body starts directly with the status counts because the window header
 already names it.
+
+<img src="assets/floating-panel.png" width="360" alt="The floating ledger window: the same four sections, with the header used to drag it and the bottom-right grip used to resize it">
 
 Each status group is collapsible: click a group header to fold it. Clicking a status count expands
 that group and scrolls its header to the top of the list, which is how a long queue stays
