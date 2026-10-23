@@ -10,6 +10,23 @@ window.__ModuleLoader__.load({
     const ORDER = ['doing', 'todo', 'review', 'blocked'];
     const VISIBLE_REFRESH_MS = 5000;
 
+    const TONE = {
+      doing: '#3b82f6',
+      todo: '#94a3b8',
+      review: '#a855f7',
+      blocked: '#ef4444',
+      accept: '#22c55e',
+      error: '#ef4444',
+    };
+
+    function tint(hex, alpha) {
+      const value = hex.replace('#', '');
+      const r = parseInt(value.slice(0, 2), 16);
+      const g = parseInt(value.slice(2, 4), 16);
+      const b = parseInt(value.slice(4, 6), 16);
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
     const MESSAGES = {
       zh: {
         title: '待办账本',
@@ -79,7 +96,10 @@ window.__ModuleLoader__.load({
       counts: { display: 'flex', gap: '6px', flexWrap: 'wrap', fontVariantNumeric: 'tabular-nums' },
       chip: { padding: '1px 6px', borderRadius: '999px', background: 'var(--dsw-alias-interactive-bg-hover, rgba(127,127,127,.14))' },
       body: { display: 'flex', flexDirection: 'column', gap: '10px' },
-      sectionTitle: { display: 'flex', justifyContent: 'space-between', gap: '8px', opacity: 0.72, textTransform: 'uppercase', letterSpacing: '.04em', fontSize: '10px' },
+      sectionTitle: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', textTransform: 'uppercase', letterSpacing: '.04em', fontSize: '10px', fontWeight: 600 },
+      sectionLabel: { display: 'flex', alignItems: 'center', gap: '5px' },
+      dot: { width: '7px', height: '7px', borderRadius: '50%', display: 'inline-block' },
+      countPill: { padding: '0 6px', borderRadius: '999px', fontSize: '10px', fontWeight: 600 },
       list: { listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '4px' },
       item: { display: 'flex', flexDirection: 'column', gap: '1px', padding: '3px 6px', borderRadius: '6px', background: 'var(--dsw-alias-interactive-bg-hover, rgba(127,127,127,.08))' },
       itemTitle: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
@@ -127,17 +147,32 @@ window.__ModuleLoader__.load({
 
     function Section({ status, tasks, onAccept, pending }) {
       if (tasks.length === 0) return null;
+      const tone = TONE[status] ?? TONE.todo;
       return h(
         'div',
         null,
-        h('div', { style: styles.sectionTitle }, h('span', null, translate(status)), h('span', null, String(tasks.length))),
+        h(
+          'div',
+          { style: { ...styles.sectionTitle, color: tone } },
+          h(
+            'span',
+            { style: styles.sectionLabel },
+            h('span', { style: { ...styles.dot, background: tone } }),
+            translate(status),
+          ),
+          h('span', { style: { ...styles.countPill, background: tint(tone, 0.16), color: tone } }, String(tasks.length)),
+        ),
         h(
           'ul',
           { style: styles.list },
           tasks.map((task) =>
             h(
               'li',
-              { key: task.slug, style: styles.item, title: `${task.title} · ${task.slug}` },
+              {
+                key: task.slug,
+                style: { ...styles.item, borderLeft: `3px solid ${tone}`, background: tint(tone, 0.08) },
+                title: `${task.title} · ${task.slug}`,
+              },
               h('span', { style: styles.itemTitle }, task.title),
               h(
                 'span',
@@ -148,7 +183,12 @@ window.__ModuleLoader__.load({
                       'button',
                       {
                         type: 'button',
-                        style: styles.accept,
+                        style: {
+                          ...styles.accept,
+                          borderColor: tint(TONE.accept, 0.55),
+                          background: tint(TONE.accept, pending === true ? 0.08 : 0.16),
+                          color: TONE.accept,
+                        },
                         disabled: pending === true,
                         onClick: () => onAccept(task.slug),
                       },
@@ -232,7 +272,20 @@ window.__ModuleLoader__.load({
             'div',
             { style: styles.counts },
             ORDER.filter((status) => (counts[status] ?? 0) > 0).map((status) =>
-              h('span', { key: status, style: styles.chip, title: translate(status) }, `${translate(status)} ${counts[status]}`),
+              h(
+                'span',
+                {
+                  key: status,
+                  style: {
+                    ...styles.chip,
+                    background: tint(TONE[status] ?? TONE.todo, 0.16),
+                    color: TONE[status] ?? TONE.todo,
+                    border: `1px solid ${tint(TONE[status] ?? TONE.todo, 0.4)}`,
+                  },
+                  title: translate(status),
+                },
+                `${translate(status)} ${counts[status]}`,
+              ),
             ),
           ),
         ),
@@ -252,7 +305,16 @@ window.__ModuleLoader__.load({
                 ),
               )
             : null
-          : h('div', { style: styles.note }, note),
+          : h(
+              'div',
+              {
+                style:
+                  state.phase === 'error' || data?.kind === 'error' || data?.kind === 'inconsistent'
+                    ? { ...styles.note, color: TONE.error }
+                    : styles.note,
+              },
+              note,
+            ),
         actionError === null ? null : h('div', { style: styles.note }, actionError),
         h(
           'div',
