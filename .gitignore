@@ -5,3 +5,4 @@ _tmp/
 out/
 *.log
 .DS_Store
+.codegraph/
