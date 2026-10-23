@@ -11,10 +11,10 @@ window.__ModuleLoader__.load({
     const VISIBLE_REFRESH_MS = 5000;
 
     const TONE = {
-      doing: 'var(--dsw-alias-brand-primary)',
-      todo: 'var(--dsw-alias-state-idle-primary)',
-      review: 'var(--dsw-alias-state-warn-primary)',
-      blocked: 'var(--dsw-alias-state-error-primary)',
+      doing: '#3b82f6',
+      todo: '#94a3b8',
+      review: '#a855f7',
+      blocked: '#ef4444',
       accept: 'var(--dsw-alias-state-success-primary)',
       error: 'var(--dsw-alias-state-error-primary)',
     };
@@ -621,7 +621,7 @@ window.__ModuleLoader__.load({
       }, h('section', {
         role: 'region',
         'aria-label': translate('title'),
-        style: { position: 'absolute', left: layout.x, top: layout.y, width: layout.width, height: layout.height, display: 'flex', flexDirection: 'column', overflow: 'hidden', pointerEvents: 'auto', borderRadius: 10, border: '1px solid var(--dsw-alias-border-l1)', background: 'var(--dsw-alias-bg-overlay)', color: 'var(--dsw-alias-label-primary)', boxShadow: '0 12px 32px rgba(0,0,0,.24)' },
+        style: { position: 'absolute', left: layout.x, top: layout.y, width: layout.width, height: layout.height, display: 'flex', flexDirection: 'column', overflow: 'hidden', pointerEvents: 'auto', borderRadius: 14, border: '1px solid var(--dsw-alias-border-l2)', background: 'var(--dsw-alias-bg-layer-1)', color: 'var(--dsw-alias-label-primary)', boxShadow: '0 12px 40px rgba(0, 0, 0, 0.28), 0 2px 8px rgba(0, 0, 0, 0.12)' },
       }, h('div', {
         style: { display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderBottom: '1px solid var(--dsw-alias-border-l1)' },
       }, h('div', {
