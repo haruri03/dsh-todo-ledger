@@ -141,7 +141,8 @@ A book launcher below the composer opens a movable, resizable Todo Ledger floati
 its header to move it and drag the bottom-right grip to resize it. It is an additional way to view
 the ledger; the original right-sidebar panel remains available. The floating panel's labels follow
 the host locale, and its body starts directly with the status counts because the window header
-already names it.
+already names it. Every surface, border and state colour comes from the host theme tokens, so the
+window follows the active theme — light, dark or a custom one — instead of carrying its own palette.
 
 <img src="assets/floating-panel.png" width="360" alt="The floating ledger window: the same four sections, with the header used to drag it and the bottom-right grip used to resize it">
 

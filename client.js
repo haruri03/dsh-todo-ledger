@@ -11,21 +11,13 @@ window.__ModuleLoader__.load({
     const VISIBLE_REFRESH_MS = 5000;
 
     const TONE = {
-      doing: '#3b82f6',
-      todo: '#94a3b8',
-      review: '#a855f7',
-      blocked: '#ef4444',
-      accept: '#22c55e',
-      error: '#ef4444',
+      doing: 'var(--dsw-alias-brand-primary)',
+      todo: 'var(--dsw-alias-state-idle-primary)',
+      review: 'var(--dsw-alias-state-warn-primary)',
+      blocked: 'var(--dsw-alias-state-error-primary)',
+      accept: 'var(--dsw-alias-state-success-primary)',
+      error: 'var(--dsw-alias-state-error-primary)',
     };
-
-    function tint(hex, alpha) {
-      const value = hex.replace('#', '');
-      const r = parseInt(value.slice(0, 2), 16);
-      const g = parseInt(value.slice(2, 4), 16);
-      const b = parseInt(value.slice(4, 6), 16);
-      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-    }
 
     const LOCALE_NAMESPACE = 'todo-ledger-panel';
     const MESSAGES = {
@@ -114,22 +106,22 @@ window.__ModuleLoader__.load({
       shell: { display: 'flex', flexDirection: 'column', gap: '8px', padding: '10px 12px', minHeight: 0, minWidth: 0, flex: '1 1 auto', fontSize: '12px', color: 'var(--dsw-alias-label-primary)' },
       header: { display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 },
       counts: { display: 'flex', gap: '6px', flexWrap: 'wrap', flexShrink: 0, fontVariantNumeric: 'tabular-nums' },
-      chip: { padding: '1px 6px', borderRadius: '999px', background: 'var(--dsw-alias-bg-layer-2)' },
+      chip: { padding: '1px 6px', borderRadius: '999px', background: 'var(--dsw-alias-bg-layer-2)', border: '1px solid var(--dsw-alias-border-l1)' },
       body: { display: 'flex', flexDirection: 'column', gap: '10px', flex: '1 1 auto', minHeight: 0, overflowY: 'auto', overflowX: 'hidden', overscrollBehavior: 'contain', scrollbarGutter: 'stable', paddingRight: 4 },
-      sectionTitle: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', textTransform: 'uppercase', letterSpacing: '.04em', fontSize: '10px', fontWeight: 600 },
+      sectionTitle: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', textTransform: 'uppercase', letterSpacing: '.04em', fontSize: '10px', fontWeight: 600, color: 'var(--dsw-alias-label-secondary)' },
       sectionToggle: { width: '100%', background: 'transparent', border: 0, padding: 0, font: 'inherit', cursor: 'pointer', textAlign: 'left' },
       chevron: { width: '10px', flexShrink: 0, opacity: 0.8 },
       sectionLabel: { display: 'flex', alignItems: 'center', gap: '5px', flex: '1 1 auto', minWidth: 0 },
       dot: { width: '7px', height: '7px', borderRadius: '50%', display: 'inline-block' },
-      countPill: { padding: '0 6px', borderRadius: '999px', fontSize: '10px', fontWeight: 600 },
+      countPill: { padding: '0 6px', borderRadius: '999px', fontSize: '10px', fontWeight: 600, background: 'var(--dsw-alias-bg-layer-2)' },
       list: { listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '4px' },
-      item: { display: 'flex', flexDirection: 'column', gap: '1px', padding: '3px 6px', borderRadius: '6px', background: 'var(--dsw-alias-bg-layer-2)' },
+      item: { display: 'flex', flexDirection: 'column', gap: '1px', padding: '3px 6px', borderRadius: '6px', background: 'var(--dsw-alias-bg-layer-2)', border: '1px solid var(--dsw-alias-border-l1)' },
       itemTitle: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
       itemMeta: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' },
-      accept: { background: 'transparent', border: '1px solid currentColor', borderRadius: '999px', padding: '0 8px', color: 'inherit', font: 'inherit', fontSize: '10px', cursor: 'pointer', opacity: 0.85 },
-      slug: { opacity: 0.6, fontSize: '10px', fontFamily: 'var(--dsw-alias-font-mono, ui-monospace, monospace)' },
-      note: { opacity: 0.72, padding: '6px 0', flexShrink: 0 },
-      footer: { display: 'flex', justifyContent: 'space-between', gap: '8px', opacity: 0.68, fontSize: '10px', flexShrink: 0, paddingRight: 16 },
+      accept: { background: 'transparent', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '999px', padding: '0 8px', font: 'inherit', fontSize: '10px', cursor: 'pointer' },
+      slug: { color: 'var(--dsw-alias-label-secondary)', fontSize: '10px', fontFamily: 'var(--dsw-alias-font-mono, ui-monospace, monospace)' },
+      note: { color: 'var(--dsw-alias-label-secondary)', padding: '6px 0', flexShrink: 0 },
+      footer: { display: 'flex', justifyContent: 'space-between', gap: '8px', color: 'var(--dsw-alias-label-secondary)', fontSize: '10px', flexShrink: 0, paddingRight: 16 },
       path: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', direction: 'rtl', textAlign: 'left' },
       action: { background: 'transparent', border: '0', padding: 0, color: 'inherit', font: 'inherit', textDecoration: 'underline', cursor: 'pointer' },
     };
@@ -353,11 +345,11 @@ window.__ModuleLoader__.load({
             'aria-controls': `todo-ledger-list-${status}`,
             title: collapsed === true ? translate('expandSection') : translate('collapseSection'),
             onClick: () => onToggle(status),
-            style: { ...styles.sectionTitle, ...styles.sectionToggle, color: tone },
+            style: { ...styles.sectionTitle, ...styles.sectionToggle },
           },
           h('span', { style: styles.chevron }, collapsed === true ? '▸' : '▾'),
           h('span', { style: styles.sectionLabel }, h('span', { style: { ...styles.dot, background: tone } }), translate(status)),
-          h('span', { style: { ...styles.countPill, background: tint(tone, 0.16), color: tone } }, String(tasks.length)),
+          h('span', { style: { ...styles.countPill, color: tone } }, String(tasks.length)),
         ),
         collapsed === true
           ? null
@@ -369,7 +361,7 @@ window.__ModuleLoader__.load({
                   'li',
                   {
                     key: task.slug,
-                    style: { ...styles.item, borderLeft: `3px solid ${tone}`, background: tint(tone, 0.08) },
+                    style: { ...styles.item, borderLeft: `2px solid ${tone}` },
                     title: `${task.title} · ${task.slug}`,
                   },
                   h('span', { style: styles.itemTitle }, task.title),
@@ -382,12 +374,7 @@ window.__ModuleLoader__.load({
                           'button',
                           {
                             type: 'button',
-                            style: {
-                              ...styles.accept,
-                              borderColor: tint(TONE.accept, 0.55),
-                              background: tint(TONE.accept, pending === true ? 0.08 : 0.16),
-                              color: TONE.accept,
-                            },
+                            style: { ...styles.accept, color: TONE.accept, opacity: pending === true ? 0.6 : 1 },
                             disabled: pending === true,
                             onClick: () => onAccept(task.slug),
                           },
@@ -484,9 +471,7 @@ window.__ModuleLoader__.load({
                   key: status,
                   style: {
                     ...styles.chip,
-                    background: tint(TONE[status] ?? TONE.todo, 0.16),
                     color: TONE[status] ?? TONE.todo,
-                    border: `1px solid ${tint(TONE[status] ?? TONE.todo, 0.4)}`,
                     cursor: 'pointer',
                     font: 'inherit',
                     fontSize: '12px',
