@@ -124,6 +124,27 @@ it through the same path as `todo_complete`, recording the panel click as both t
 sign-off (`accepted from the ledger panel at <ISO timestamp>`). Only `review` tasks can be accepted
 this way; any other state is refused with an inline error rather than an alarm.
 
+### Floating panel
+
+A book launcher below the composer opens a movable, resizable Todo Ledger floating panel. Drag
+its header to move it and drag the bottom-right grip to resize it. It is an additional way to view
+the ledger; the original right-sidebar panel remains available. The floating panel's labels follow
+the host locale, and its body starts directly with the status counts because the window header
+already names it.
+
+Each status group is collapsible: click a group header to fold it. Clicking a status count expands
+that group and scrolls its header to the top of the list, which is how a long queue stays
+navigable. Only the task list scrolls; the counts row and the footer stay put.
+
+The panel is bound to the session it is shown in: switching to a session in another workspace
+re-reads that workspace's ledger instead of keeping the previous one, and returning focus to the
+window re-reads it again. The floating panel follows the session in front, so it re-targets when
+the session changes instead of staying on the one that opened it.
+
+The viewport-clamped box (position plus size) is saved in browser local storage and restored when
+the panel opens again. Visibility and ledger content are not saved there: opening the panel reads
+the current ledger rather than restoring a previous view.
+
 The panel talks to two host routes, both read-only in intent and dispatched as `GET`:
 
 | Route | Purpose |

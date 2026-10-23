@@ -4,6 +4,38 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-10-24
+
+The release that gives the ledger a window of its own, and keeps every view on the session you are
+actually looking at.
+
+### Added
+
+- **Floating ledger window.** A `Todo` control under the composer opens a frame-wide window with the
+  same sections and sign-off action as the sidebar panel. Drag its header to move it, drag the
+  bottom-right grip to resize it (240×180 minimum, clamped to the viewport), and the box is restored
+  the next time it opens. Only the task list scrolls, so the counts row and the footer stay put however
+  long the queue gets.
+- **Collapsible status groups.** Click a group header to fold it. Clicking a status count expands that
+  group and aligns its header to the top of the list, which keeps a long queue navigable without
+  dragging the chat page behind the window.
+- **The window follows the session in front.** Switching sessions re-targets an open floating window
+  to the new session's workspace instead of leaving it on the session that opened it.
+
+### Changed
+
+- The floating window starts at its status counts: the duplicate plugin name and in-body collapse from
+  the previous iteration are gone, because its own header already names the panel.
+- The composer control reads as a plain dock item (`Todo`, the book icon, dock font and hover
+  treatment) rather than a filled chip.
+
+### Fixed
+
+- The sidebar panel kept showing the previous ledger after switching to a session in another
+  workspace: the tab registration froze the session injected when it was created. It now reads the
+  session the slot dispatches, keeps one resource and one request per session, and re-reads when the
+  window comes back into focus.
+
 ## [0.2.0] - 2026-10-24
 
 The release that turns the ledger from a prompt-only capability into something you can watch and
