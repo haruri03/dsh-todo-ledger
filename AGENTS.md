@@ -42,7 +42,7 @@ node test/smoke.mjs
 
 ## Red lines
 
-- State changes go through the tools only; never hand-edit the status lines in `todo.md` / `tasks.md`.
+- The ledger markdown is never hand-edited: the status lines in `todo.md`, the `tasks.md` index, and a task file's frontmatter are owned by the tools, and every state change goes through `todo_add` / `todo_status` / `todo_complete` / `todo_archive` so all three stay in sync.
 - A closure always carries `evidence` and `signoff`; do not relax it.
 - Changing the prompt section or the snapshot format means updating the README and the test in the same change.
 - No personal information and no machine-absolute paths; examples use `<repo-root>`.
