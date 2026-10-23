@@ -8,10 +8,12 @@ window.__ModuleLoader__.load({
     const KIND = 'todo-ledger';
     const ROUTE = '/todo-ledger/projection';
     const ORDER = ['doing', 'todo', 'review', 'blocked'];
+    const VISIBLE_REFRESH_MS = 5000;
 
     const MESSAGES = {
       zh: {
         title: '待办账本',
+        description: '当前目录的账本：进行中、待办、待复核、受阻',
         loading: '正在读取账本…',
         absent: '当前目录没有 _todo/ 或 todo/ 账本',
         inconsistent: '账本不一致：队列、索引与任务详情对不上',
@@ -28,6 +30,7 @@ window.__ModuleLoader__.load({
       },
       en: {
         title: 'Todo ledger',
+        description: "This directory's ledger: in progress, to do, awaiting review, blocked",
         loading: 'Reading the ledger…',
         absent: 'No _todo/ or todo/ ledger in this directory',
         inconsistent: 'Ledger is inconsistent: queue, index and task files disagree',
@@ -55,20 +58,6 @@ window.__ModuleLoader__.load({
       return table[key] ?? MESSAGES.en[key] ?? key;
     }
 
-    function toolSignature(trajectory) {
-      try {
-        if (!Array.isArray(trajectory)) return '';
-        const names = [];
-        for (const entry of trajectory) {
-          const name = entry?.toolName ?? entry?.tool?.name ?? entry?.name;
-          if (typeof name === 'string' && name.startsWith('todo_')) names.push(name);
-        }
-        return `${names.length}:${names.slice(-1)[0] ?? ''}`;
-      } catch {
-        return '';
-      }
-    }
-
     async function load(sessionId, signal) {
       const query = sessionId ? `?sessionId=${encodeURIComponent(sessionId)}` : '';
       const response = await fetch(`${ROUTE}${query}`, { signal, headers: { accept: 'application/json' } });
@@ -80,7 +69,7 @@ window.__ModuleLoader__.load({
       shell: { display: 'flex', flexDirection: 'column', gap: '8px', padding: '10px 12px', fontSize: '12px', color: 'var(--dsw-alias-text-primary, inherit)' },
       header: { display: 'flex', alignItems: 'center', gap: '8px' },
       toggle: { flex: '1 1 auto', display: 'flex', alignItems: 'center', gap: '6px', background: 'transparent', border: '0', padding: '2px 0', color: 'inherit', font: 'inherit', cursor: 'pointer', textAlign: 'left' },
-      chevron: { width: '10px', display: 'inline-block', transition: 'transform 120ms ease-out' },
+      chevron: { width: '10px', display: 'inline-block' },
       counts: { display: 'flex', gap: '6px', flexWrap: 'wrap', fontVariantNumeric: 'tabular-nums' },
       chip: { padding: '1px 6px', borderRadius: '999px', background: 'var(--dsw-alias-interactive-bg-hover, rgba(127,127,127,.14))' },
       body: { display: 'flex', flexDirection: 'column', gap: '10px' },
@@ -95,28 +84,35 @@ window.__ModuleLoader__.load({
       action: { background: 'transparent', border: '0', padding: 0, color: 'inherit', font: 'inherit', textDecoration: 'underline', cursor: 'pointer' },
     };
 
-    function useLedger(sessionId, visible) {
+    function useLedger(sessionId) {
       const [state, setState] = React.useState({ phase: 'loading' });
       const [nonce, setNonce] = React.useState(0);
       const refresh = React.useCallback(() => setNonce((value) => value + 1), []);
 
       React.useEffect(() => {
-        if (!visible) return undefined;
         const controller = new AbortController();
         let cancelled = false;
-        load(sessionId, controller.signal)
-          .then((data) => {
-            if (!cancelled) setState({ phase: 'ready', data });
-          })
-          .catch((error) => {
-            if (cancelled || error?.name === 'AbortError') return;
-            setState({ phase: 'error', message: String(error?.message ?? error) });
-          });
+        const read = () => {
+          load(sessionId, controller.signal)
+            .then((data) => {
+              if (!cancelled) setState({ phase: 'ready', data });
+            })
+            .catch((error) => {
+              if (cancelled || error?.name === 'AbortError') return;
+              setState({ phase: 'error', message: String(error?.message ?? error) });
+            });
+        };
+        read();
+        const timer = setInterval(() => {
+          if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+          read();
+        }, VISIBLE_REFRESH_MS);
         return () => {
           cancelled = true;
+          clearInterval(timer);
           controller.abort();
         };
-      }, [sessionId, visible, nonce]);
+      }, [sessionId, nonce]);
 
       return { state, refresh };
     }
@@ -145,28 +141,10 @@ window.__ModuleLoader__.load({
     function Panel(props) {
       const [expanded, setExpanded] = React.useState(true);
       const sessionId = typeof props?.sessionId === 'string' ? props.sessionId : undefined;
-      const visible = props?.tab?.visible !== false;
-      const { state, refresh } = useLedger(sessionId, visible);
+      const { state, refresh } = useLedger(sessionId);
       const data = state.phase === 'ready' ? state.data : null;
       const tasks = Array.isArray(data?.tasks) ? data.tasks : [];
       const counts = data?.counts ?? {};
-
-      const useTrajectory = typeof props?.useTrajectory === 'function' ? props.useTrajectory : null;
-      let trajectory = null;
-      if (useTrajectory !== null) {
-        try {
-          trajectory = useTrajectory();
-        } catch {
-          trajectory = null;
-        }
-      }
-      const signature = toolSignature(trajectory);
-      const lastSignature = React.useRef(signature);
-      React.useEffect(() => {
-        if (lastSignature.current === signature) return;
-        lastSignature.current = signature;
-        refresh();
-      }, [signature, refresh]);
 
       const note = React.useMemo(() => {
         if (state.phase === 'loading') return translate('loading');
@@ -195,7 +173,7 @@ window.__ModuleLoader__.load({
               onClick: () => setExpanded((value) => !value),
               title: expanded ? translate('collapse') : translate('expand'),
             },
-            h('span', { style: { ...styles.chevron, transform: expanded ? 'rotate(90deg)' : 'none' } }, '›'),
+            h('span', { style: styles.chevron }, expanded ? '▾' : '▸'),
             h('span', null, translate('title')),
           ),
           h(
@@ -226,26 +204,34 @@ window.__ModuleLoader__.load({
       );
     }
 
-    function Title() {
-      return h('span', null, translate('title'));
-    }
-
     return {
-      name: 'todo-ledger',
-      inject: ['slots', 'sidebarRightTabs'],
+      name: 'todo-ledger-panel',
+      inject: ['slots'],
       apply(ctx) {
-        const definition = {
-          id: TYPE_ID,
-          kind: KIND,
-          keepMounted: true,
-          title: () => translate('title'),
-        };
-        ctx.sidebarRightTabs.register(definition);
+        ctx.inject(['sidebarRightTabs'], (owner) => {
+          const tabs = owner.get('sidebarRightTabs');
+          if (tabs === undefined) return;
+          owner.effect(
+            () =>
+              tabs.register({
+                id: TYPE_ID,
+                kind: KIND,
+                title: () => translate('title'),
+                guide: [{ order: 100, title: () => translate('title'), description: () => translate('description') }],
+              }),
+            'todo-ledger.tab-type',
+          );
+        });
+
         ctx.slots.inject('sidebar.right.pane.tab', () =>
-          ctx.slots.register({ name: 'sidebar.right.pane.tab', key: TYPE_ID }, Panel),
-        );
-        ctx.slots.inject('sidebar.right.pane.tab.title', () =>
-          ctx.slots.register({ name: 'sidebar.right.pane.tab.title', key: TYPE_ID }, Title),
+          ctx.slots.register(
+            {
+              name: 'sidebar.right.pane.tab',
+              key: TYPE_ID,
+              inject: (sessionId) => ({ sessionId }),
+            },
+            Panel,
+          ),
         );
       },
     };
