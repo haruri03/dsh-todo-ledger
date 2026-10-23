@@ -21,6 +21,9 @@ window.__ModuleLoader__.load({
         unbound: '尚未绑定到会话目录',
         empty: '队列里没有任务',
         refresh: '刷新',
+        accept: '通过',
+        accepting: '处理中…',
+        acceptFailed: '接受失败',
         expand: '展开',
         collapse: '折叠',
         doing: '进行中',
@@ -38,6 +41,9 @@ window.__ModuleLoader__.load({
         unbound: 'Not bound to a session directory yet',
         empty: 'The queue is empty',
         refresh: 'Refresh',
+        accept: 'Accept',
+        accepting: 'Accepting…',
+        acceptFailed: 'Could not accept',
         expand: 'Expand',
         collapse: 'Collapse',
         doing: 'In progress',
@@ -77,6 +83,8 @@ window.__ModuleLoader__.load({
       list: { listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '4px' },
       item: { display: 'flex', flexDirection: 'column', gap: '1px', padding: '3px 6px', borderRadius: '6px', background: 'var(--dsw-alias-interactive-bg-hover, rgba(127,127,127,.08))' },
       itemTitle: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+      itemMeta: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' },
+      accept: { background: 'transparent', border: '1px solid currentColor', borderRadius: '999px', padding: '0 8px', color: 'inherit', font: 'inherit', fontSize: '10px', cursor: 'pointer', opacity: 0.85 },
       slug: { opacity: 0.6, fontSize: '10px', fontFamily: 'var(--dsw-alias-font-mono, ui-monospace, monospace)' },
       note: { opacity: 0.72, padding: '6px 0' },
       footer: { display: 'flex', justifyContent: 'space-between', gap: '8px', opacity: 0.68, fontSize: '10px' },
@@ -117,7 +125,7 @@ window.__ModuleLoader__.load({
       return { state, refresh };
     }
 
-    function Section({ status, tasks }) {
+    function Section({ status, tasks, onAccept, pending }) {
       if (tasks.length === 0) return null;
       return h(
         'div',
@@ -131,7 +139,23 @@ window.__ModuleLoader__.load({
               'li',
               { key: task.slug, style: styles.item, title: `${task.title} · ${task.slug}` },
               h('span', { style: styles.itemTitle }, task.title),
-              h('span', { style: styles.slug }, task.slug),
+              h(
+                'span',
+                { style: styles.itemMeta },
+                h('span', { style: styles.slug }, task.slug),
+                status === 'review' && typeof onAccept === 'function'
+                  ? h(
+                      'button',
+                      {
+                        type: 'button',
+                        style: styles.accept,
+                        disabled: pending === true,
+                        onClick: () => onAccept(task.slug),
+                      },
+                      pending === true ? translate('accepting') : translate('accept'),
+                    )
+                  : null,
+              ),
             ),
           ),
         ),
@@ -140,11 +164,39 @@ window.__ModuleLoader__.load({
 
     function Panel(props) {
       const [expanded, setExpanded] = React.useState(true);
+      const [pending, setPending] = React.useState({});
+      const [actionError, setActionError] = React.useState(null);
       const sessionId = typeof props?.sessionId === 'string' ? props.sessionId : undefined;
       const { state, refresh } = useLedger(sessionId);
       const data = state.phase === 'ready' ? state.data : null;
       const tasks = Array.isArray(data?.tasks) ? data.tasks : [];
       const counts = data?.counts ?? {};
+
+      const accept = React.useCallback(
+        async (slug) => {
+          setActionError(null);
+          setPending((current) => ({ ...current, [slug]: true }));
+          try {
+            const response = await fetch(`${ROUTE.replace('projection', 'complete')}`, {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({ slug, sessionId }),
+            });
+            const body = await response.json().catch(() => ({}));
+            if (!response.ok || body.ok !== true) throw new Error(body.message ?? `HTTP ${response.status}`);
+            refresh();
+          } catch (error) {
+            setActionError(`${translate('acceptFailed')}: ${error?.message ?? error}`);
+          } finally {
+            setPending((current) => {
+              const next = { ...current };
+              delete next[slug];
+              return next;
+            });
+          }
+        },
+        [sessionId, refresh],
+      );
 
       const note = React.useMemo(() => {
         if (state.phase === 'loading') return translate('loading');
@@ -190,11 +242,18 @@ window.__ModuleLoader__.load({
                 'div',
                 { style: styles.body },
                 ORDER.map((status) =>
-                  h(Section, { key: status, status, tasks: tasks.filter((task) => task.status === status) }),
+                  h(Section, {
+                    key: status,
+                    status,
+                    tasks: tasks.filter((task) => task.status === status),
+                    onAccept: accept,
+                    pending,
+                  }),
                 ),
               )
             : null
           : h('div', { style: styles.note }, note),
+        actionError === null ? null : h('div', { style: styles.note }, actionError),
         h(
           'div',
           { style: styles.footer },
