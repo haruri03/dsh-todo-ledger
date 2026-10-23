@@ -1,6 +1,6 @@
 {
   "name": "dsh-todo-ledger",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "todo-ledger for DeepSeek Harness: resident prompt section plus native tools that keep authoritative task state and cross-session context in the repo's ledger directory — `_todo/` preferred, legacy `todo/` still supported (todo.md + tasks.md + tasks/*.md + archived/ + context/).",
   "type": "module",
   "license": "MIT",

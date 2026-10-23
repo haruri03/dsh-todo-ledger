@@ -4,6 +4,31 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2026-10-24
+
+A follow-up on the floating window: its surface now matches the host's own floating panels, and the
+status colours are the ones the panel has always used.
+
+### Fixed
+
+- **The window surface no longer reads as a lighter grey than everything around it.** It used
+  `--dsw-alias-bg-overlay`, which resolves to a mid grey in the dark theme. It now takes the raised
+  layer the host's own floating panels use: `--dsw-alias-bg-layer-1`, a `--dsw-alias-border-l2`
+  border, a 14px radius and the same two-layer shadow.
+
+### Changed
+
+- **Status colours are the previous palette again** — blue in progress, slate to do, violet awaiting
+  review, red blocked. Only the accept action and error text use the host state tokens.
+- Count chips and task rows stay on `--dsw-alias-bg-layer-2` with a `--dsw-alias-border-l1` border,
+  and section titles, slugs and the footer use `--dsw-alias-label-secondary`.
+
+### Added
+
+- A storefront icon (`assets/icon-180.png`, rendered from `assets/icon.svg`) and `screenshots.json`
+  declaring the sidebar and floating-window captures.
+- Install-from-npm instructions in both READMEs, plus the npm version badge.
+
 ## [0.3.0] - 2026-10-24
 
 The release that gives the ledger a window of its own, and keeps every view on the session you are
