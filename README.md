@@ -101,6 +101,35 @@ Every tool accepts an optional `root`, so it can operate on repositories outside
 
 `todo_doctor { root: "<repo-root>" }`.
 
+## Sidebar panel
+
+The plugin also serves a sidebar panel for the ledger of the current session working directory:
+browsing is read-only, and the panel's only action is accepting a review task. It is opt-in: nothing is injected into the layout until a user opens the panel from the
+right sidebar's guide capsule (named after the plugin); it then renders as a sidebar tab.
+
+- Four sections — `doing`, `todo`, `review`, `blocked` — with a count each, plus a per-state colour
+  so the shape of the ledger reads at a glance.
+- Ordering is fixed: `doing` first, then `todo`, `review`, `blocked`; an empty section still shows.
+- The panel reads; it does not write task content. Polling runs only while the panel is visible
+  (every 5 s), so a closed or backgrounded tab costs nothing.
+- When a session has no ledger above its working directory, or the ledger files disagree, the panel
+  says so instead of guessing. Run `todo_doctor` to repair the latter.
+
+Each row under `review` carries an **accept** action. Accepting a review task from the panel archives
+it through the same path as `todo_complete`, recording the panel click as both the evidence and the
+sign-off (`accepted from the ledger panel at <ISO timestamp>`). Only `review` tasks can be accepted
+this way; any other state is refused with an inline error rather than an alarm.
+
+The panel talks to two host routes, both read-only in intent and dispatched as `GET`:
+
+| Route | Purpose |
+|---|---|
+| `/todo-ledger/projection?sessionId=<id>` | Ledger projection for that session's working directory |
+| `/todo-ledger/complete?slug=<slug>&sessionId=<id>` | Accept one `review` task; the only side-effecting call |
+
+A host restart is required after installing or updating the host-side code; the panel itself is plain
+client JavaScript shipped by the package, so it needs no build step and appears after a page refresh.
+
 ## How context survives
 
 1. On each system-prompt assembly the plugin finds the nearest `_todo/` above the session working
