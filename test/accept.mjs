@@ -64,19 +64,19 @@ try {
     };
   };
   handler({ method: 'GET', url: '/todo-ledger/complete' }, response());
-  assert.equal(calls[0].status, 405);
+  assert.equal(calls[0].status, 400);
+  assert.equal(JSON.parse(calls[0].body).kind, 'invalid');
 
   let handlers = {};
   const request = {
-    method: 'POST',
-    url: '/todo-ledger/complete',
+    method: 'GET',
+    url: `/todo-ledger/complete?slug=later&cwd=${encodeURIComponent(fixture)}`,
     on(event, listener) {
       handlers[event] = listener;
       return request;
     },
   };
   handler(request, response());
-  handlers.data(Buffer.from(JSON.stringify({ cwd: fixture, slug: 'later' })));
   handlers.end();
   assert.equal(calls[1].status, 400);
   assert.equal(JSON.parse(calls[1].body).kind, 'not-review');

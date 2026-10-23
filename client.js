@@ -217,7 +217,9 @@ window.__ModuleLoader__.load({
           setActionError(null);
           setPending((current) => ({ ...current, [slug]: true }));
           try {
-            const response = await fetch(`${ROUTE.replace('projection', 'complete')}`, {
+            const query = new URLSearchParams({ slug });
+            if (sessionId) query.set('sessionId', sessionId);
+            const response = await fetch(`${ROUTE.replace('projection', 'complete')}?${query.toString()}`, {
               method: 'POST',
               headers: { 'content-type': 'application/json' },
               body: JSON.stringify({ slug, sessionId }),

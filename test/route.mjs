@@ -50,7 +50,8 @@ complete.handler(
   { method: 'GET', url: '/todo-ledger/complete' },
   { writeHead(status) { refused.status = status; }, end(page) { refused.page = page; } },
 );
-assert.equal(refused.status, 405);
+assert.equal(refused.status, 400);
+assert.equal(JSON.parse(refused.page).kind, 'invalid');
 assert.equal(JSON.parse(refused.page).kind, 'invalid');
 
 console.log('route: ok');
