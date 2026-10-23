@@ -92,6 +92,8 @@ _todo/
 
 ## 侧栏面板
 
+![侧栏里的账本面板：进行中、待办、待复核（带「通过」按钮）、阻塞四区](assets/panel.png)
+
 插件还会为当前会话工作目录的账本提供一个侧栏面板：浏览是只读的，面板上唯一的动作是「通过」一个待复核任务。
 它是按需打开的：在右侧栏的引导胶囊（以插件名命名）点开之前，布局里不会多出任何东西；点开后作为一个侧栏标签页渲染。
 
@@ -112,6 +114,27 @@ _todo/
 | `/todo-ledger/complete?slug=<slug>&sessionId=<id>` | 通过一个 `review` 任务；唯一有副作用的调用 |
 
 安装或更新宿主侧代码后需要重启宿主；面板本身是包里自带的纯客户端 JavaScript，没有构建步骤，刷新页面即可出现。
+
+## 依赖
+
+任务可以等别的任务。给 `todo_add` 传 `depends_on`（slug 列表），这个任务就会以 `blocked` +
+`blocker_cause: dependency` 建出来，直到所有前驱都被**正式完成**；如果前驱当时已经完成，它直接就是 `todo`。
+
+```mermaid
+graph LR
+  spec["设计 API 契约<br/>todo"] --> impl["实现接口<br/>blocked"]
+  spec --> form["接上表单<br/>blocked"]
+  impl --> notes["写发布说明<br/>blocked"]
+  form --> notes
+  legacy["迁移旧配置加载器<br/>blocked, manual"]
+```
+
+完成 `spec` 会在同一次调用里把 `impl` 和 `form` 提升为 `todo`；`notes` 要等两个前驱都完成——只完成一个不够。
+`legacy` 没有前驱，它的 `blocker_cause: manual` 意味着任何签收都不会自动解除它。
+
+- **只认正式完成**：前驱处于 `review` 不算，被丢弃（dropped）的归档也不算；只有 `todo_complete`——或面板上的「通过」——才解锁。
+- **创建时就校验**：未知、已被丢弃、自引用、成环的前驱都会被拒绝；`dependency` 却没有前驱同样被拒。
+- **可修**：`todo_doctor` 会报出与归档不一致的依赖字段。
 
 ## 上下文是怎么留下来的
 

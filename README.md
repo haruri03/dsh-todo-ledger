@@ -103,6 +103,8 @@ Every tool accepts an optional `root`, so it can operate on repositories outside
 
 ## Sidebar panel
 
+![The ledger panel in the sidebar: in progress, to do, awaiting review with an Accept button, and blocked](assets/panel.png)
+
 The plugin also serves a sidebar panel for the ledger of the current session working directory:
 browsing is read-only, and the panel's only action is accepting a review task. It is opt-in: nothing is injected into the layout until a user opens the panel from the
 right sidebar's guide capsule (named after the plugin); it then renders as a sidebar tab.
@@ -129,6 +131,31 @@ The panel talks to two host routes, both read-only in intent and dispatched as `
 
 A host restart is required after installing or updating the host-side code; the panel itself is plain
 client JavaScript shipped by the package, so it needs no build step and appears after a page refresh.
+
+## Dependencies
+
+Tasks can wait for other tasks. Pass `depends_on` (a list of slugs) to `todo_add`, and the task is
+created `blocked` with `blocker_cause: dependency` until every predecessor is **formally completed**.
+If the predecessors are already completed, the task is created as `todo` straight away.
+
+```mermaid
+graph LR
+  spec["Design the API contract<br/>todo"] --> impl["Implement the endpoint<br/>blocked"]
+  spec --> form["Wire the form to it<br/>blocked"]
+  impl --> notes["Draft the release notes<br/>blocked"]
+  form --> notes
+  legacy["Migrate the legacy config loader<br/>blocked, manual"]
+```
+
+Completing `spec` promotes `impl` and `form` to `todo` in the same call. `notes` stays blocked until
+both of its predecessors are completed — one is not enough. `legacy` has no predecessor: its
+`blocker_cause: manual` means nothing unblocks it automatically.
+
+- **Completion only.** A predecessor in `review` does not count; neither does an archived task that
+  was dropped instead of completed. Only `todo_complete` — or the panel's accept — unblocks.
+- **Validated at creation.** Unknown, already-dropped, self-referential and circular predecessors are
+  rejected, as is a `dependency` blocker with no predecessor.
+- **Repairable.** `todo_doctor` reports dependency fields that disagree with the archives.
 
 ## How context survives
 

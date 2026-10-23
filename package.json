@@ -21,6 +21,7 @@
     "lib",
     "client.js",
     "cordis.patch.yml",
+    "assets",
     "README.md",
     "README_zh.md",
     "CHANGELOG.md",
