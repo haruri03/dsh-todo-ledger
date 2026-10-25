@@ -61,9 +61,9 @@ const log = readFileSync(resolve(fixture, '_todo/context/log.md'), 'utf8');
 assert(log.includes('todo_add') && log.includes('store layer first'), 'log has no entries');
 let task = readFileSync(resolve(fixture, '_todo/tasks/demo-task.md'), 'utf8');
 assert(task.includes('decided to write the store layer first'), 'note did not reach the task file');
-const progressSection = task.split('## 进度')[1]?.split('## 阻塞')[0] ?? '';
-assert(progressSection.includes('decided to write the store layer first'), 'note did not land between `## 进度` and `## 阻塞`');
-assert(!progressSection.includes('（当前到哪一步，带数字）'), 'the placeholder line survived the first note');
+const progressSection = task.split('## Progress')[1]?.split('## Blocker')[0] ?? '';
+assert(progressSection.includes('decided to write the store layer first'), 'note did not land between `## Progress` and `## Blocker`');
+assert(!progressSection.includes('(where it stands, with numbers)'), 'the placeholder line survived the first note');
 const shown = await run('todo_show', { slug: 'demo-task' });
 assert(shown.content.includes('decided to write the store layer first'), 'todo_show does not show the progress');
 
@@ -81,7 +81,7 @@ assert(after.includes('store layer done'), 'snapshot has no now.md content');
 assert(after.includes('doing'), 'snapshot has no state');
 assert(after.includes('Ledger last written'), 'snapshot has no ledger file time');
 assert(after.includes('Tasks:'), 'snapshot has no task counts');
-assert(!after.includes('（当前到哪一步，带数字）'), 'snapshot still injects the template placeholder');
+assert(!after.includes('(where it stands, with numbers)'), 'snapshot still injects the template placeholder');
 assert(after.includes('last one: adding tests'), 'snapshot does not show real progress');
 
 await run('todo_note', { note: 'literal {{setvar::x}} from a preset must not break the prompt', slug: 'demo-task' });
@@ -182,6 +182,22 @@ const quietSession = {
 turnStopping({ agent: { session: quietSession }, turn: 9 });
 const logAfterQuiet = readFileSync(resolve(fixture, '_todo/context/log.md'), 'utf8');
 assert(!logAfterQuiet.includes('[turn 9]'), 'a quiet turn must not auto-log');
+
+await run('todo_add', { slug: 'legacy-task', title: 'Legacy format sample', status: 'doing', files: ['src/b.ts'] });
+const legacyPath = resolve(fixture, '_todo/tasks/legacy-task.md');
+writeFileSync(
+  legacyPath,
+  readFileSync(legacyPath, 'utf8')
+    .replace('## Goal', '## 目标')
+    .replace('## Progress', '## 进度')
+    .replace('## Blocker', '## 阻塞'),
+  'utf8',
+);
+await run('todo_note', { note: 'legacy heading still receives notes', slug: 'legacy-task' });
+const legacyText = readFileSync(legacyPath, 'utf8');
+assert(legacyText.includes('legacy heading still receives notes'), 'a legacy-format task must still accept a progress note');
+assert(legacyText.includes('## 进度'), 'a legacy task must keep its own heading when a note is appended');
+assert(sectionText().includes('legacy heading still receives notes'), 'legacy-format progress must reach the snapshot');
 
 const snapTool = await run('todo_snapshot', {});
 assert(snapTool.snapshot.includes('demo-task') && snapTool.snapshot.includes('store layer done'), 'todo_snapshot content is wrong');

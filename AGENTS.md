@@ -4,8 +4,8 @@ Self-contained plugin repository that turns a todo ledger into a host-level capa
 
 ## Ownership
 
-In scope: the prompt-section rules and snapshot injection, the 11 `todo_*` tools, the ledger file format, the turn-end auto-log.
-Out of scope: the external todo CLI implementation; both share one Markdown format, so a format change must be verified for external compatibility.
+In scope: the prompt-section rules and snapshot injection, the 12 `todo_*` tools, the read-only context CLI (`todo-context`), the ledger file format, the turn-end auto-log.
+Out of scope: the external todo CLI implementation; both share one Markdown format, so a format change must be verified for external compatibility. The bundled `todo-context` CLI only reads the ledger that this plugin writes.
 
 ## Layout
 
@@ -14,6 +14,10 @@ package.json            bundle declaration
 cordis.patch.yml        one insert: todo-ledger -> ./lib/index.js (root is configurable)
 lib/index.js            prompt section + tool registration + turn-stopping log
 lib/store.js            ledger read/write: queue, index, task detail, archive, context
+lib/context-contract.js envelope contract constants shared by the tool and the CLI
+lib/context-reader.js   read-only context reader: dispatch() over overview/log/checkpoint/task/logs
+lib/context-cli.js      argument parsing and text/JSON rendering for the CLI
+bin/todo-context.mjs    `todo-context` executable that wraps lib/context-cli.js
 README.md / README_zh.md  tool table, snapshot rules, install and verification (English / Chinese)
 test/smoke.mjs          host-free smoke test (not published)
 ```
@@ -35,9 +39,11 @@ _todo/context/log.md     append-only log
 
 ```powershell
 node test/smoke.mjs
+node bin/todo-context.mjs --action overview
 ```
 
-- Covers: the 11 tool schemas, the prompt-section snapshot, the full lifecycle, and refusal to close a task without signoff.
+- Covers: the 12 tool schemas, the prompt-section snapshot, the full lifecycle, and refusal to close a task without signoff.
+- The CLI check is a read-only smoke run: it must print a `ready` envelope and exit 0. `--json` returns the same envelope the `todo_context` tool returns.
 - The interop check against the external todo CLI needs `TODO_CLI` pointing at its script; it is skipped when unset.
 
 ## Red lines
@@ -46,8 +52,16 @@ node test/smoke.mjs
 - A closure always carries `evidence` and `signoff`; do not relax it.
 - Changing the prompt section or the snapshot format means updating the README and the test in the same change.
 - No personal information and no machine-absolute paths; examples use `<repo-root>`.
-- Format-critical literals stay Chinese on purpose (task section headings, the task-detail link label, and archived delivery-record labels) because the external todo CLI parses the same files.
+- Ledger templates ship in English and Chinese; the calling agent chooses one per ledger through the `language` parameter, and the plugin writes the chosen form and reads both. The labels of the chosen form are canonical for that ledger: adding or renaming one means updating that table in `lib/format.js`, the prompt section, the snapshot, and `test/smoke.mjs` in the same change.
 
-## Scope of the English strings
+## Language of the tool text and the scaffold
 
-Everything that reaches the model or the user is English: the prompt section, tool names, descriptions and parameter docs, tool output, errors, and the snapshot. Ledger scaffolding that the external CLI also reads keeps its original literals; `context/` scaffolding is this plugin's own and is English.
+Everything that reaches the model or the user stays English: the prompt section, tool names, descriptions and parameter docs, tool output, errors, and the snapshot.
+
+The ledger scaffold ships in two written forms, English and Chinese: the task section headings, the task-detail link label, the archived delivery-record field labels, and the `context/` files.
+
+The calling agent picks one for a ledger through the `language` parameter, the plugin writes that form from then on, and the ledger remembers it; English is the default, so a caller outside a Chinese-speaking locale gets an English ledger.
+
+Both written forms are read through the single table in `lib/format.js`, so a ledger written from either template — including one created by a version that wrote English only — keeps working.
+
+Content an agent writes inside those sections is free-form and may be in any language; the plugin neither rewrites it nor requires a particular language.

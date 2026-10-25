@@ -16,9 +16,11 @@
 | 规则写在 AGENTS.md / skill 里，模型不读就失效 | 宿主级 `systemPrompt.section`，每个会话每步都在，不依赖模型记得加载 |
 | 用系统 `todo_write` 每轮覆盖式重写，进度丢失 | 权威状态落在仓库 `_todo/` 文件里，跨会话、跨压缩都在 |
 | 上下文只存在于对话历史，压缩后丢失 | `todo_checkpoint` / `todo_note` 把结论和下一步写进 `_todo/context/`，每次组装自动注入快照 |
-| 模型要自己拼 shell 命令 | 11 个原生工具，schema 校验、错误可读 |
+| 模型要自己拼 shell 命令 | 12 个原生工具，schema 校验、错误可读 |
 
 文件格式与外部 todo CLI **完全一致**，同一个仓库插件和原版 CLI 都能写、都能 `doctor`。
+
+账本脚手架跟随调用方的选择：`todo_init` 与 `todo_add` 接受可选的 `language`（`en` 或 `zh`），插件按所选形式写入该账本的文件。默认英文，因此非中文环境的用户始终得到英文账本。两种书写形式都能读取，无论账本由哪种语言写成（包括更早版本创建的账本）都继续可用；各章节内的内容不受限制。
 
 ## 安装（手动）
 
@@ -63,7 +65,7 @@ dsh plugin --profile <profile> add dsh-todo-ledger
 也支持 tarball URL。更新时先卸载再安装，或等待上游发版。
 
 装好后新会话的系统提示里会出现「【todo-ledger · 跨会话任务与上下文】」段；工具列表里多出
-`todo_list / todo_add / todo_show / todo_status / todo_complete / todo_archive / todo_note / todo_checkpoint / todo_snapshot / todo_doctor / todo_init`。
+`todo_context / todo_list / todo_add / todo_show / todo_status / todo_complete / todo_archive / todo_note / todo_checkpoint / todo_snapshot / todo_doctor / todo_init`。
 无需重启。
 
 ## 目录与文件格式
@@ -85,6 +87,76 @@ _todo/
 状态只有 `todo` / `doing` / `blocked` / `review`；没有 `done`。`review` = 做完等负责人签收。
 结案必须带 `evidence` 与 `signoff`（负责人原话），缺一不可——这是 todo 账本工作流的硬规则。
 
+## 工作机制
+
+```mermaid
+flowchart LR
+  subgraph host["DSH 宿主"]
+    prompt["系统提示装配"]
+    tools["原生 todo_* 工具"]
+    cli["todo-context 命令行"]
+  end
+  subgraph plugin["dsh-todo-ledger"]
+    section["提示词段落 + 快照"]
+    store["lib/store.js"]
+    reader["lib/context-reader.js"]
+    format["lib/format.js<br/>中英模板 + 别名表"]
+  end
+  subgraph repo["仓库"]
+    files["_todo/<br/>todo.md · tasks.md · tasks/*.md<br/>archived/ · context/now.md · context/log.md"]
+  end
+  prompt --> section
+  section -->|读| store
+  tools --> store
+  cli --> reader
+  reader --> store
+  store -->|读写| files
+  store --> format
+```
+
+提示词段落是从账本**现算**出来的，不是存在账本里：每次装配提示词都取一份新快照，陈旧的会话无法复活陈旧的任务列表。
+
+```mermaid
+stateDiagram-v2
+  direction LR
+  [*] --> todo: todo_add
+  [*] --> blocked: todo_add + depends_on
+  blocked --> todo: 所有前置任务都已结案
+  todo --> doing: todo_status / todo_note 带 state
+  doing --> blocked: todo_status + blocker_cause
+  blocked --> doing: todo_status
+  doing --> review: 做完等签收
+  todo --> review: todo_status
+  review --> archived: todo_complete + evidence + signoff
+  todo --> archived: todo_archive + reason
+  doing --> archived: todo_archive + reason
+  archived --> [*]
+```
+
+没有 `done`。处于 `review` 的前置任务不算完成，不会解锁依赖它的任务——只有 `todo_complete` 算。
+
+```mermaid
+flowchart TD
+  snapshot["注入的快照<br/>计数 · review 与 blocked · doing 进度<br/>now.md · 最近 3 条日志摘要（带 ref）"] --> overview["todo_context overview<br/>tasks.total · log.total · revision"]
+  overview --> tasks["action: tasks"]
+  overview --> logs["action: logs（limit、cursor）<br/>ref · 时间 · 摘要"]
+  overview --> task["action: task slug"]
+  overview --> checkpoint["action: checkpoint"]
+  logs --> log["action: log，ref #N<br/>只返回那一条全文"]
+```
+
+同样的四个动作在 `todo-context` 命令行里都有。任何命令都不会顺手把整份日志吐出来：索引是有界的，要正文得给 ref。
+
+```mermaid
+flowchart LR
+  init["todo_init / todo_add<br/>language: en 或 zh，默认 en"] --> langfile["_todo/context/language"]
+  langfile --> tmpl["template(lang)"]
+  tmpl --> written["章节标题 · 占位句 · 索引链接标签<br/>· 交付记录字段"]
+  written --> files["账本文件"]
+  alias["别名表<br/>英文 + 旧中文"] --> read["快照 · reader · 命令行"]
+  files --> read
+```
+
 ## 工具
 
 | 工具 | 作用 |
@@ -98,11 +170,28 @@ _todo/
 | `todo_note` | 往 `context/log.md` 追加流水；带 `slug` 时**插入该任务「## 进度」节末尾**（首次写入清掉模板占位句）；带 `state` 时**顺手推进状态机**（治“只 note 不改状态”） |
 | `todo_checkpoint` | 覆盖写 `context/now.md`：当前目标 / 下一步 / 关键文件 |
 | `todo_snapshot` | 只读：返回当前会注入提示词的那份快照（用来确认账本是不是又旧了） |
+| `todo_context` | 渐进式披露的按需读取：先 `overview`，再 `logs`（带稳定 ref 与游标的摘要）、`log`（单条全文）、`task` 或 `checkpoint` |
 | `todo_doctor` | 双向一致性校验，返回 errors / warns |
 | `todo_init` | 建 `_todo/` 骨架（只在用户要求时） |
 
 所有工具都接受可选 `root`，方便对工作区之外的仓库操作，例如：
 `todo_doctor { root: "<repo-root>" }`。
+
+## 命令行
+
+安装后会得到一个 `todo-context` 可执行入口，供脚本、编辑器或偏好命令行的 agent 使用。默认输出精简文本，`--json` 输出与工具一致的 envelope。
+
+```powershell
+todo-context --action overview --root <repo-root>
+todo-context --action logs --limit 5 --root <repo-root>
+todo-context --action log --ref "#42" --root <repo-root>
+todo-context --action task --slug <slug> --root <repo-root>
+todo-context --action checkpoint --root <repo-root>
+```
+
+`--action` 取值 `overview` / `tasks` / `task` / `checkpoint` / `logs` / `log`。退出码：`0` 成功（账本不存在也返回 `0` 并明确说明）、`1` 账本不一致或内部错误、`2` 参数非法。`--root` 缺省为当前目录，并会自动向上找到父目录里的账本。
+
+命令与工具共用同一套实现，因此边界一致：任何一条命令都不会意外把整份日志吐出来。
 
 ## 侧栏面板
 
@@ -212,7 +301,7 @@ graph LR
 node test/smoke.mjs
 ```
 
-覆盖：提示段注册与快照渲染、11 个工具 schema、init→add→status→note→checkpoint→doctor→complete/archive
+覆盖：提示段注册与快照渲染、12 个工具 schema、init→add→status→note→checkpoint→doctor→complete/archive
 全流程、缺 `signoff` 拒绝结案。设置 `TODO_CLI` 时额外验证与外部 `todo.js` 的 `list`/`doctor` 互通。
 
 ## 卸载

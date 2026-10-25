@@ -17,10 +17,16 @@ read them, and the task list has to be rewritten every turn:
 | Rules live in `AGENTS.md` / a skill and stop working when the model does not read them | A host-level `systemPrompt.section` is present every step of every session, with no load step to forget |
 | The system `todo_write` list is overwritten each turn and progress is lost | Authoritative state lives in the repository's `_todo/` files and survives sessions and compaction |
 | Context exists only in conversation history and disappears after compaction | `todo_checkpoint` / `todo_note` write conclusions and next steps into `_todo/context/`, and a snapshot is injected on every prompt assembly |
-| The model has to assemble shell commands itself | 11 native tools with schema validation and readable errors |
+| The model has to assemble shell commands itself | 12 native tools with schema validation and readable errors |
 
 The file format is fully compatible with an external todo CLI: the plugin and the original CLI can
 both write the same repository and both can run `doctor` on it.
+
+The ledger scaffold follows the caller's choice: `todo_init` and `todo_add` accept an optional
+`language` (`en` or `zh`), and the plugin writes the chosen form for the files of that ledger. It
+defaults to English, so a caller outside a Chinese-speaking locale always gets an English ledger.
+Both written forms are read, so a ledger written in either language — including one created by an
+earlier version — keeps working, and content inside the sections is free-form.
 
 ## Install (manual)
 
@@ -69,7 +75,7 @@ Tarball URLs are accepted too. To update, remove and reinstall, or wait for an u
 After installation, every new session carries a `[todo-ledger · cross-session tasks and context]`
 prompt section, and the tool list gains:
 
-`todo_list / todo_add / todo_show / todo_status / todo_complete / todo_archive / todo_note / todo_checkpoint / todo_snapshot / todo_doctor / todo_init`
+`todo_context / todo_list / todo_add / todo_show / todo_status / todo_complete / todo_archive / todo_note / todo_checkpoint / todo_snapshot / todo_doctor / todo_init`
 
 No restart is required.
 
@@ -94,6 +100,79 @@ finished and waiting for the owner's sign-off. Closing a task requires both `evi
 `signoff` (the owner's own words); neither may be omitted. This is a hard rule of the todo ledger
 workflow.
 
+## How it works
+
+```mermaid
+flowchart LR
+  subgraph host["DSH host"]
+    prompt["system prompt assembly"]
+    tools["native todo_* tools"]
+    cli["todo-context CLI"]
+  end
+  subgraph plugin["dsh-todo-ledger"]
+    section["prompt section + snapshot"]
+    store["lib/store.js"]
+    reader["lib/context-reader.js"]
+    format["lib/format.js<br/>EN/ZH templates + alias table"]
+  end
+  subgraph repo["repository"]
+    files["_todo/<br/>todo.md · tasks.md · tasks/*.md<br/>archived/ · context/now.md · context/log.md"]
+  end
+  prompt --> section
+  section -->|reads| store
+  tools --> store
+  cli --> reader
+  reader --> store
+  store -->|reads and writes| files
+  store --> format
+```
+
+The prompt section is assembled from the ledger, not stored in it: every prompt gets a fresh
+snapshot, so a stale session cannot revive a stale task list.
+
+```mermaid
+stateDiagram-v2
+  direction LR
+  [*] --> todo: todo_add
+  [*] --> blocked: todo_add + depends_on
+  blocked --> todo: every predecessor completed
+  todo --> doing: todo_status / todo_note state
+  doing --> blocked: todo_status + blocker_cause
+  blocked --> doing: todo_status
+  doing --> review: work finished, awaiting sign-off
+  todo --> review: todo_status
+  review --> archived: todo_complete + evidence + signoff
+  todo --> archived: todo_archive + reason
+  doing --> archived: todo_archive + reason
+  archived --> [*]
+```
+
+There is no `done`. A predecessor in `review` does not unblock a dependent — only `todo_complete`
+does.
+
+```mermaid
+flowchart TD
+  snapshot["injected snapshot<br/>totals · review and blocked · doing progress<br/>now.md · last 3 log summaries with refs"] --> overview["todo_context overview<br/>tasks.total · log.total · revision"]
+  overview --> tasks["action: tasks"]
+  overview --> logs["action: logs (limit, cursor)<br/>ref · time · summary"]
+  overview --> task["action: task slug"]
+  overview --> checkpoint["action: checkpoint"]
+  logs --> log["action: log, ref #N<br/>that one entry in full"]
+```
+
+The same four actions exist as `todo-context` subcommands. Nothing returns the whole log by
+accident: the index is bounded, and a full entry needs its ref.
+
+```mermaid
+flowchart LR
+  init["todo_init / todo_add<br/>language: en or zh, default en"] --> langfile["_todo/context/language"]
+  langfile --> tmpl["template(lang)"]
+  tmpl --> written["headings · placeholders · index link label<br/>· delivery record fields"]
+  written --> files["ledger files"]
+  alias["alias table<br/>EN + legacy ZH"] --> read["snapshot · reader · CLI"]
+  files --> read
+```
+
 ## Tools
 
 | Tool | Purpose |
@@ -107,12 +186,35 @@ workflow.
 | `todo_note` | Append to `context/log.md`; with `slug`, insert at the end of that task's `## Progress` section (the placeholder is removed on first write); with `state`, advance the state machine in the same call |
 | `todo_checkpoint` | Overwrite `context/now.md`: current goal / next step / key files |
 | `todo_snapshot` | Read-only: return the snapshot that would be injected into the prompt (check whether the ledger is stale) |
+| `todo_context` | Bounded reads for progressive disclosure: `overview` first, then `logs` (summaries with stable refs and a cursor), `log` (one entry in full), `task`, or `checkpoint` |
 | `todo_doctor` | Two-way consistency check; returns errors and warnings |
 | `todo_init` | Create the `_todo/` skeleton (only when the user asks) |
 
 Every tool accepts an optional `root`, so it can operate on repositories outside the workspace:
 
 `todo_doctor { root: "<repo-root>" }`.
+
+## Command line
+
+The package installs a `todo-context` binary for scripts, editors, and agents that prefer a shell
+over a tool call. It prints compact text by default; `--json` prints the same envelope the tool
+returns.
+
+```powershell
+todo-context --action overview --root <repo-root>
+todo-context --action logs --limit 5 --root <repo-root>
+todo-context --action log --ref "#42" --root <repo-root>
+todo-context --action task --slug <slug> --root <repo-root>
+todo-context --action checkpoint --root <repo-root>
+```
+
+`--action` is one of `overview` / `tasks` / `task` / `checkpoint` / `logs` / `log`. Exit codes:
+`0` success (a missing ledger also exits `0` and reports it), `1` inconsistent ledger or internal
+error, `2` invalid arguments. `--root` defaults to the current directory, and a ledger in a parent
+directory is found automatically.
+
+The binary and the tool share one implementation, so both apply the same bounded-detail rules: no
+command returns the whole log by accident.
 
 ## Sidebar panel
 
@@ -244,7 +346,7 @@ Without `root`, the plugin searches upward from the session working directory fo
 node test/smoke.mjs
 ```
 
-Coverage: prompt section registration and snapshot rendering, the schemas of all 11 tools, the full
+Coverage: prompt section registration and snapshot rendering, the schemas of all 12 tools, the full
 init → add → status → note → checkpoint → doctor → complete/archive flow, and rejection of a close
 without `signoff`. When `TODO_CLI` points at an external `todo.js`, the test also verifies
 `list`/`doctor` interoperability.

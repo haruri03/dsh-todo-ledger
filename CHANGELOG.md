@@ -4,6 +4,60 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-10-25
+
+Progressive context disclosure: an agent now reads a short index first and pulls one log entry or one
+task body only when it needs the detail, instead of carrying the whole ledger in every request. The
+scaffold language is now the caller's choice instead of being fixed to English: a ledger keeps that
+choice, both written forms are read, and both READMEs diagram how the plugin works.
+
+### Added
+
+- **`todo_context`, a read-only context tool** with five actions: `overview` (counts, stale
+  accounting, checkpoint age, recent entry ids), `log` (one entry by id), `logs` (a bounded page of
+  entry summaries), `checkpoint` (the current `now.md` plus its age), and `task` (an optional single
+  section of a task file). Every call returns an envelope carrying a ledger `revision`, a `coverage`
+  marker and a `hint` naming the exact next call, so a caller never has to guess or over-read.
+- **`todo-context`, a standalone read-only CLI** (`bin/todo-context.mjs`, installed as the
+  `todo-context` bin). It exposes the same envelope as JSON (`--json`) or as compact text, resolves the
+  ledger from the working directory, and exits `0` ready / `2` usage / `3` absent / `4` not found.
+- Log entries now carry a stable id: `appendLog` writes `- <timestamp> [#N] <text>`, and `logEntry` /
+  `logs` address entries by `L<N>`. Entries written before this release stay readable and keep a
+  positional reference.
+- `store.js` gained pure read paths (`readState`, `ledgerPresent`, `discover`) so a read never creates
+  directories or touches the ledger.
+- **`language` parameter on `todo_init` and `todo_add`** — `en` (default) or `zh`. The ledger records
+  the choice in `context/language`, and later writes reuse it without asking again.
+- **Mechanism diagrams in the README** — Mermaid graphs for the data flow between the host, the
+  plugin and the ledger files, the task state machine, the progressive-disclosure read path, and the
+  language selection. Both `README.md` and `README_zh.md` carry the same four diagrams.
+
+### Changed
+
+- **The prompt section and the snapshot describe the new reading order** — start with `overview`, then
+  fetch a single `log` or `task` section — and distinguish "no ledger here" from "empty ledger".
+- The injected snapshot no longer grows with the log: it shows the ledger revision, the staleness
+  accounting and the last three entry summaries with their ids, then points at `todo_list` /
+  `todo_show` / `todo_context` for anything deeper.
+- Snapshot cost is bounded by a character budget that trims the body first and always keeps the
+  closing hint, so a long ledger cannot crowd out the model's actual task.
+
+### Fixed
+
+- A missing `_todo/` directory is reported as `**no** _todo/` instead of reading like an empty ledger,
+  which previously invited an unnecessary `todo_init`.
+
+### Compatibility
+
+- The scaffold ships in two written forms — task section headings, the task-detail link label, the
+  archived delivery-record field labels, and the `context/` files are written from one table in
+  `lib/format.js`, in English or Chinese. English stays the default, so a caller outside a
+  Chinese-speaking locale gets an English ledger.
+- Both forms are read through the same alias table, so a ledger written from either template —
+  including one created by a version that wrote English only — reads and updates normally. File bodies
+  stay free-form: an agent or the owner may write a goal, a note or a delivery record in any language,
+  and nothing rewrites it.
+
 ## [0.3.1] - 2026-10-24
 
 A follow-up on the floating window: its surface now matches the host's own floating panels, and the
