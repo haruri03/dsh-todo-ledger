@@ -23,6 +23,7 @@
     "client.js",
     "cordis.patch.yml",
     "assets",
+    "screenshots.json",
     "README.md",
     "README_zh.md",
     "CHANGELOG.md",
