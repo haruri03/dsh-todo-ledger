@@ -28,8 +28,9 @@ window.__ModuleLoader__.load({
         absent: '当前目录没有 _todo/ 或 todo/ 账本',
         inconsistent: '账本不一致：队列、索引与任务详情对不上',
         error: '读取账本失败',
-        unbound: '尚未绑定到会话目录',
-        empty: '队列里没有任务',
+        noSession: '选择一个会话后查看其目录的账本',
+        unbound: '此会话目录尚不可用；会话加载后将自动重试',
+        empty: '此账本没有已登记的未完成任务；已归档任务不在此显示',
         refresh: '刷新',
         accept: '通过',
         accepting: '处理中…',
@@ -54,8 +55,9 @@ window.__ModuleLoader__.load({
         absent: 'No _todo/ or todo/ ledger in this directory',
         inconsistent: 'Ledger is inconsistent: queue, index and task files disagree',
         error: 'Could not read the ledger',
-        unbound: 'Not bound to a session directory yet',
-        empty: 'The queue is empty',
+        noSession: 'Select a conversation to view its directory’s ledger',
+        unbound: 'This session directory is not available yet; retrying as the session loads',
+        empty: 'No active tasks registered in this ledger; archived tasks are not shown',
         refresh: 'Refresh',
         accept: 'Accept',
         accepting: 'Accepting…',
@@ -227,7 +229,7 @@ window.__ModuleLoader__.load({
       const resource = {
         key,
         sessionId,
-        state: { phase: 'loading' },
+        state: key ? { phase: 'loading' } : { phase: 'ready', data: { kind: 'no-session' } },
         listeners: new Set(),
         references: 0,
         timer: null,
@@ -247,7 +249,7 @@ window.__ModuleLoader__.load({
       };
 
       const read = async () => {
-        if (resource.inFlight || resource.references === 0 || resource.disposed) return;
+        if (!key || resource.inFlight || resource.references === 0 || resource.disposed) return;
         resource.inFlight = true;
         const token = ++resource.requestToken;
         const controller = new AbortController();
@@ -274,7 +276,7 @@ window.__ModuleLoader__.load({
         resource.listeners.add(listener);
         resource.references += 1;
         listener(resource.state);
-        if (resource.references === 1) {
+        if (key && resource.references === 1) {
           resource.disposed = false;
           ledgerResources.set(key, resource);
           void read();
@@ -304,7 +306,7 @@ window.__ModuleLoader__.load({
 
     function useLedger(sessionId) {
       const resource = React.useMemo(() => getLedgerResource(sessionId), [sessionId]);
-      const [state, setState] = React.useState(resource.state);
+      const [, setState] = React.useState(resource.state);
       const refresh = React.useCallback(() => resource.refresh(), [resource]);
 
       React.useEffect(() => resource.subscribe(setState), [resource]);
@@ -326,7 +328,7 @@ window.__ModuleLoader__.load({
         };
       }, [resource]);
 
-      return { state, refresh };
+      return { state: resource.state, refresh };
     }
 
     function Section({ status, tasks, onAccept, pending, collapsed, onToggle, headerRef }) {
@@ -449,6 +451,7 @@ window.__ModuleLoader__.load({
         if (data === null) return translate('error');
         if (data.kind === 'absent') return translate('absent');
         if (data.kind === 'inconsistent') return translate('inconsistent');
+        if (data.kind === 'no-session') return translate('noSession');
         if (data.kind === 'unbound') return translate('unbound');
         if (data.kind === 'error') return `${translate('error')}: ${data.message ?? ''}`;
         if (tasks.length === 0) return translate('empty');

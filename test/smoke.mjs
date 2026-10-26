@@ -47,6 +47,28 @@ await run('todo_init', {});
 assert(existsSync(resolve(fixture, '_todo/tasks.md')), 'init did not create tasks.md');
 assert(existsSync(resolve(fixture, '_todo/context/now.md')), 'init did not create context/now.md');
 
+assert(before.includes('Do not initialize one unless the user asks or confirms.'), 'missing-ledger initialization must remain opt-in');
+const intakeRules = [
+  'When a ledger exists, register substantive new work requested by the user before implementation.',
+  'Check the current overview for a matching task and reuse it; read its detail before continuing.',
+  'If no task matches, call todo_add before editing deliverables, changing configuration, or running commands that change project state.',
+  'Register the requested outcome, not every tool call or implementation step.',
+  'Brief read-only inspection to identify scope or a matching task may come first.',
+  'Trivial Q&A and read-only checks do not require a task.',
+  'Do not create tasks from historical checkpoints, incidental findings, or inferred follow-up work that the user has not requested.',
+  'If the requested scope is unclear, clarify it rather than inventing a task.',
+];
+const assertIntakeRules = (text) => {
+  assert(text.includes(intakeRules.join(' ')), 'task intake rules must remain explicit and complete');
+  assert(text.includes('this does not replace registering substantive new work before implementation.'), 'bookkeeping exemption must not override task intake');
+};
+assertIntakeRules(sectionText());
+const intakeFiles = ['_todo/todo.md', '_todo/tasks.md', '_todo/context/now.md', '_todo/context/log.md'];
+const intakeBefore = intakeFiles.map((file) => readFileSync(resolve(fixture, file), 'utf8'));
+await run('todo_list', {});
+sectionText();
+assert(intakeFiles.every((file, index) => readFileSync(resolve(fixture, file), 'utf8') === intakeBefore[index]), 'read-only inspection must not create inferred tasks or bookkeeping writes');
+
 await run('todo_add', { slug: 'demo-task', title: 'Demo task', status: 'todo', files: ['src/a.ts'] });
 const added = await run('todo_list', {});
 assert(added.listing.includes('demo-task'), 'list does not show the new task');
@@ -76,6 +98,7 @@ assert(!doingBlock.includes('decided to write the store layer first'), 'doing bl
 assert(!doingBlock.includes('store layer finished, tools wired'), 'doing block still shows the middle progress line');
 
 const after = sectionText();
+assertIntakeRules(after);
 assert(after.includes('demo-task'), 'snapshot has no task');
 assert(after.includes('store layer done'), 'snapshot has no now.md content');
 assert(after.includes('doing'), 'snapshot has no state');

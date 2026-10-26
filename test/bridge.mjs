@@ -25,8 +25,12 @@ try {
   const sessions = { list: () => [{ id: 'session-1', header: { cwd: fixture } }] };
   assert.equal(projectionBody(sessions, 'sessionId=session-1').kind, 'ready');
   assert.equal(projectionBody(sessions, 'sessionId=session-2').kind, 'unbound');
-  assert.equal(projectionBody(sessions, '').kind, 'ready');
-  assert.deepEqual(projectionBody(sessions, '').counts, { doing: 1, todo: 1, review: 0, blocked: 0 });
+  assert.equal(projectionBody(sessions, '').kind, 'unbound');
+  assert.equal(projectionBody(sessions, 'sessionId=').kind, 'unbound');
+  const coldSessions = { list: () => [] };
+  assert.equal(projectionBody(coldSessions, 'sessionId=session-1').kind, 'unbound');
+  coldSessions.list = sessions.list;
+  assert.equal(projectionBody(coldSessions, 'sessionId=session-1').kind, 'ready');
 
   const empty = mkdtempSync(join(tmpdir(), 'todo-bridge-empty-'));
   try {
@@ -48,7 +52,7 @@ try {
   const broken = { status: 0, page: '' };
   handler(undefined, { writeHead(status) { broken.status = status; }, end(page) { broken.page = page; } });
   assert.equal(broken.status, 200);
-  assert.equal(JSON.parse(broken.page).kind, 'ready');
+  assert.equal(JSON.parse(broken.page).kind, 'unbound');
 
   const orphan = { status: 0, page: '' };
   createProjectionHandler()(

@@ -28,6 +28,12 @@ defaults to English, so a caller outside a Chinese-speaking locale always gets a
 Both written forms are read, so a ledger written in either language — including one created by an
 earlier version — keeps working, and content inside the sections is free-form.
 
+## Register before implementation
+
+When a ledger exists, the prompt instructs the agent to reuse a matching task or call `todo_add` for substantive new work requested by the user before editing deliverables, changing configuration, or running state-changing commands. Register the requested outcome, not each implementation step. Brief read-only scope inspection may come first; trivial Q&A and read-only checks need no task. Unclear scope calls for clarification, not an invented task. Historical checkpoints and inferred follow-ups do not authorize new work. Missing ledgers are initialized only when the user asks or confirms.
+
+This is prompt guidance, not a runtime execution block or automatic task-creation mechanism.
+
 ## Install (manual)
 
 Choose one:

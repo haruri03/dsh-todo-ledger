@@ -33,13 +33,18 @@ try {
   assert.equal(refused.kind, 'not-review');
   assert.equal(existsSync(join(base, 'tasks', 'later.md')), true);
 
-  const done = completeBody(undefined, { cwd: fixture, slug: 'ship' });
+  const sessions = { list: () => [{ id: 'session-1', header: { cwd: fixture } }] };
+  assert.deepEqual(completeBody(sessions, { slug: 'ship' }), { ok: false, kind: 'unbound' });
+  assert.equal(completeBody(sessions, { sessionId: 'unknown', slug: 'ship' }).kind, 'unbound');
+  assert.equal(existsSync(join(base, 'tasks', 'ship.md')), true);
+
+  const done = completeBody(sessions, { sessionId: 'session-1', slug: 'ship' });
   assert.equal(done.ok, true);
   assert.equal(done.kind, 'completed');
   assert.equal(existsSync(join(base, 'tasks', 'ship.md')), false);
   const archived = readFileSync(join(base, 'archived', 'ship.md'), 'utf8');
-  assert.match(archived, /## 交付记录/);
-  assert.match(archived, /签收：accepted from the ledger panel at/);
+  assert.match(archived, /## Delivery record/);
+  assert.match(archived, /Sign-off: accepted from the ledger panel at/);
   assert.match(archived, /`lib\/ship\.js`/);
 
   const queue = readFileSync(join(base, 'todo.md'), 'utf8');

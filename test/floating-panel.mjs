@@ -160,6 +160,10 @@ assert.equal(intervalCalls, 1, 'panels for the same session duplicated the polli
 sidebarEntry.component({ sessionId: 'session-other' });
 assert.equal(fetchCalls, 2, 'different sessions did not receive isolated ledger requests');
 assert.equal(intervalCalls, 2, 'different sessions did not receive isolated polling timers');
+const beforeUnselected = fetchCalls;
+const unselectedPanel = sidebarEntry.component({});
+assert.equal(fetchCalls, beforeUnselected, 'a panel without a session must not request an arbitrary directory');
+assert.match(JSON.stringify(unselectedPanel), /Select a conversation/);
 assert.equal(sidebarEntry.options.inject, undefined, 'the panel must read the slot-provided sessionId instead of freezing an injected copy');
 await new Promise((resolve) => setTimeout(resolve, 0));
 const wakeListeners = [...(browserEvents.get('focus') ?? [])];
@@ -276,5 +280,21 @@ visit(otherLauncher, (node) => node.props?.['data-todo-ledger-launcher'] === '')
 staleClose();
 assert.equal(visit(overlayEntry.component(), (node) => node.type?.name === 'Panel').props.sessionId, 'session-other', 'stale close dismissed the newly targeted session');
 assert.equal(fetchCalls, fetchedBeforeLauncher, 'launcher should not make a request until the panel renders');
+
+const originalUseState = React.useState;
+React.useState = (initial) => initial?.phase
+  ? [{ phase: 'ready', data: { kind: 'ready', root: '/previous-session-private', tasks: [] } }, () => {}]
+  : originalUseState(initial);
+assert.equal(JSON.stringify(sidebarEntry.component({ sessionId: 'session-switched' })).includes('/previous-session-private'), false, 'switching sessions must not render state retained from the previous resource');
+React.useState = originalUseState;
+
+const english = registeredDictionaries.get('todo-ledger-panel:en');
+const chinese = registeredDictionaries.get('todo-ledger-panel:zh');
+assert.match(english.empty, /No active tasks/);
+assert.match(chinese.empty, /没有已登记的未完成任务/);
+assert.match(english.unbound, /session directory is not available/);
+assert.match(chinese.unbound, /会话目录尚不可用/);
+activeLocale = 'zh';
+assert.match(JSON.stringify(sidebarEntry.component({})), /选择一个会话/);
 
 console.log('✓ floating panel Client slot, locale and interaction contract passed');

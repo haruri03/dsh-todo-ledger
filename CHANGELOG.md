@@ -4,6 +4,27 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2026-10-26
+
+Fixes a ledger being read from the wrong session, and states the register-before-implementing intent
+in the prompt section. No format or API break.
+
+### Fixed
+
+- **A lookup without a session id no longer borrows another session's directory** — the bridge used
+  to fall back to the most recently seen session, so a restored tab could show a different
+  repository's queue and a completion could close a task in the wrong ledger.
+- **The sidebar panel no longer flashes the previous session's tasks** — data is cleared when the
+  session changes instead of staying on screen until the new reply arrives.
+- **The empty state says what it means** — "no session selected", "this session has no directory
+  yet", and "no active tasks here, archived tasks are not listed" are now distinct.
+
+### Changed
+
+- **Registering work before implementing is stated in the prompt section** — a substantive request
+  gets a matching task, or a new `todo_add`, before deliverables and state-changing commands;
+  read-only inspection and trivial Q&A stay exempt.
+
 ## [0.4.0] - 2026-10-25
 
 Progressive context disclosure: an agent now reads a short index first and pulls one log entry or one
