@@ -1,5 +1,7 @@
 # dsh-todo-ledger
 
+![dsh-todo-ledger 封面：鲸鱼女仆坐在书桌前，旁边是 DeepSeek Harness 的任务与上下文面板](assets/banner.png)
+
 [![release](https://img.shields.io/github/v/release/haruri03/dsh-todo-ledger?sort=semver)](https://github.com/haruri03/dsh-todo-ledger/releases) [![npm](https://img.shields.io/npm/v/dsh-todo-ledger)](https://www.npmjs.com/package/dsh-todo-ledger) [![license](https://img.shields.io/github/license/haruri03/dsh-todo-ledger)](LICENSE)
 
 [English](README.md) | [中文](README_zh.md)

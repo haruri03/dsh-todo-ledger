@@ -1,5 +1,7 @@
 # dsh-todo-ledger
 
+![dsh-todo-ledger cover: a whale-maid at a desk beside the DeepSeek Harness task and context panels](assets/banner.png)
+
 [![release](https://img.shields.io/github/v/release/haruri03/dsh-todo-ledger?sort=semver)](https://github.com/haruri03/dsh-todo-ledger/releases) [![npm](https://img.shields.io/npm/v/dsh-todo-ledger)](https://www.npmjs.com/package/dsh-todo-ledger) [![license](https://img.shields.io/github/license/haruri03/dsh-todo-ledger)](LICENSE)
 
 [English](README.md) | [中文](README_zh.md)
