@@ -104,9 +104,9 @@ runInNewContext(source, {
         root: '/repo',
         counts: { doing: 1, todo: 2 },
         tasks: [
-          { slug: 'alpha', title: 'Alpha', status: 'doing' },
-          { slug: 'beta', title: 'Beta', status: 'todo' },
-          { slug: 'gamma', title: 'Gamma', status: 'todo' },
+          { slug: 'alpha', description: 'Alpha', status: 'doing' },
+          { slug: 'beta', description: 'Beta', status: 'todo' },
+          { slug: 'gamma', description: 'Gamma', status: 'todo' },
         ],
       }),
     };

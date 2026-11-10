@@ -364,9 +364,9 @@ window.__ModuleLoader__.load({
                   {
                     key: task.slug,
                     style: { ...styles.item, borderLeft: `2px solid ${tone}` },
-                    title: `${task.title} · ${task.slug}`,
+                    title: `${task.description} · ${task.slug}`,
                   },
-                  h('span', { style: styles.itemTitle }, task.title),
+                  h('span', { style: styles.itemTitle }, task.description),
                   h(
                     'span',
                     { style: styles.itemMeta },
