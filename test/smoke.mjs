@@ -48,6 +48,11 @@ assert(existsSync(resolve(fixture, '_todo/tasks.md')), 'init did not create task
 assert(existsSync(resolve(fixture, '_todo/context/now.md')), 'init did not create context/now.md');
 
 assert(before.includes('Do not initialize one unless the user asks or confirms.'), 'missing-ledger initialization must remain opt-in');
+assert(before.includes('todo_status, todo_describe, todo_note'), 'the write-tool list must name todo_describe');
+assert(
+  before.includes('The one-line label the panel shows for a task is its description: change it with todo_describe, not by editing files.'),
+  'the prompt section must say the panel label is the description and who edits it',
+);
 const intakeRules = [
   'When a ledger exists, register substantive new work requested by the user before implementation.',
   'Check the current overview for a matching task and reuse it; read its detail before continuing.',
