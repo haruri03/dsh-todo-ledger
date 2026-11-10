@@ -187,7 +187,8 @@ flowchart LR
 |---|---|
 | `todo_list` | List tasks and states (optionally filtered); call it before starting work |
 | `todo_show` | Show one task's details |
-| `todo_add` | Create a task (unique kebab-case slug) |
+| `todo_add` | Create a task (unique kebab-case slug); accepts an optional `description` — the one-line label the panel shows instead of the title |
+| `todo_describe` | Change only that label (the task's `description`): rewrites the frontmatter field and the `tasks.md` index row so the panel picks it up on the next read; slug, state and `depends_on` are untouched |
 | `todo_status` | Change state and sync the task frontmatter, index, and queue |
 | `todo_complete` | Close and archive a task; requires `evidence` + `signoff` |
 | `todo_archive` | Abandon a task; additionally requires `reason` |
@@ -354,7 +355,7 @@ Without `root`, the plugin searches upward from the session working directory fo
 node test/smoke.mjs
 ```
 
-Coverage: prompt section registration and snapshot rendering, the schemas of all 12 tools, the full
+Coverage: prompt section registration and snapshot rendering, the schemas of all 13 tools, the full
 init → add → status → note → checkpoint → doctor → complete/archive flow, and rejection of a close
 without `signoff`. When `TODO_CLI` points at an external `todo.js`, the test also verifies
 `list`/`doctor` interoperability.

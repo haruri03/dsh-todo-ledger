@@ -4,6 +4,26 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.2] - 2026-11-11
+
+The one-line label a task shows in the panel can now be edited on its own, without touching the task.
+
+### Added
+
+- **`todo_describe`** — changes only the label the sidebar and the floating window show for one task. It
+  writes a `description` field into the task frontmatter and the same text into the `tasks.md` index row,
+  so the panel shows the new wording on its next read. The slug, the state, the progress notes and
+  `depends_on` are left untouched.
+- **`todo_add` accepts `description`** — the label can be set when the task is created. It is the same
+  string the index row shows; omit it and the title is displayed.
+
+### Compatibility
+
+- A task without `description` still displays its title, so ledgers written by earlier versions need no
+  migration and nothing is rewritten until someone calls `todo_describe`.
+- Dependency handling is unchanged: `depends_on` and `blocker_cause` remain the only fields the
+  dependency graph reads, so renaming a label never moves a task in or out of a blocked state.
+
 ## [0.4.1] - 2026-10-26
 
 Fixes a ledger being read from the wrong session, and states the register-before-implementing intent

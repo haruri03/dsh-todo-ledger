@@ -4,7 +4,7 @@ Self-contained plugin repository that turns a todo ledger into a host-level capa
 
 ## Ownership
 
-In scope: the prompt-section rules and snapshot injection, the 12 `todo_*` tools, the read-only context CLI (`todo-context`), the ledger file format, the turn-end auto-log.
+In scope: the prompt-section rules and snapshot injection, the 13 `todo_*` tools, the read-only context CLI (`todo-context`), the ledger file format, the turn-end auto-log.
 Out of scope: the external todo CLI implementation; both share one Markdown format, so a format change must be verified for external compatibility. The bundled `todo-context` CLI only reads the ledger that this plugin writes.
 
 ## Layout
@@ -42,7 +42,7 @@ node test/smoke.mjs
 node bin/todo-context.mjs --action overview
 ```
 
-- Covers: the 12 tool schemas, the prompt-section snapshot, the full lifecycle, and refusal to close a task without signoff.
+- Covers: the 13 tool schemas, the prompt-section snapshot, the full lifecycle, and refusal to close a task without signoff.
 - The CLI check is a read-only smoke run: it must print a `ready` envelope and exit 0. `--json` returns the same envelope the `todo_context` tool returns.
 - The interop check against the external todo CLI needs `TODO_CLI` pointing at its script; it is skipped when unset.
 

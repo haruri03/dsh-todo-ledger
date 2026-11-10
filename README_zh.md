@@ -171,7 +171,8 @@ flowchart LR
 |---|---|
 | `todo_list` | 列出任务与状态（可按状态筛），开工先调 |
 | `todo_show` | 看某任务详情 |
-| `todo_add` | 新建任务（slug kebab-case，唯一） |
+| `todo_add` | 新建任务（slug kebab-case，唯一）；可选 `description`，即面板上那一行说明（缺省回落 title） |
+| `todo_describe` | 只改那行说明（任务的 `description`）：重写 frontmatter 字段与 `tasks.md` 索引行，面板下次读取即更新；slug、状态与 `depends_on` 一概不动 |
 | `todo_status` | 改状态，同步详情 frontmatter / 索引 / 队列 |
 | `todo_complete` | 结案归档，必须 `evidence` + `signoff` |
 | `todo_archive` | 放弃归档，另需 `reason` |
@@ -309,7 +310,7 @@ graph LR
 node test/smoke.mjs
 ```
 
-覆盖：提示段注册与快照渲染、12 个工具 schema、init→add→status→note→checkpoint→doctor→complete/archive
+覆盖：提示段注册与快照渲染、13 个工具 schema、init→add→status→note→checkpoint→doctor→complete/archive
 全流程、缺 `signoff` 拒绝结案。设置 `TODO_CLI` 时额外验证与外部 `todo.js` 的 `list`/`doctor` 互通。
 
 ## 卸载

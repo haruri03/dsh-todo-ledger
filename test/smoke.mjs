@@ -26,7 +26,7 @@ const assert = (condition, message) => { if (!condition) fail(message); };
 assert(section, 'no prompt section registered');
 assert(typeof turnStopping === 'function', 'no turn-stopping auto-log registered');
 assert(section.name === 'todo-ledger' && section.order === 180, 'prompt section name/order is wrong');
-for (const name of ['todo_init','todo_list','todo_show','todo_add','todo_status','todo_complete','todo_archive','todo_note','todo_checkpoint','todo_doctor','todo_snapshot']) {
+for (const name of ['todo_init','todo_list','todo_show','todo_add','todo_describe','todo_status','todo_complete','todo_archive','todo_note','todo_checkpoint','todo_doctor','todo_snapshot']) {
   assert(tools.has(name), `missing tool ${name}`);
   const t = tools.get(name);
   assert(typeof t.description === 'string' && t.description.length > 10, `${name} has no description`);
@@ -96,6 +96,25 @@ const doingBlock = multiSnap.split('In progress:')[1]?.split('Current context')[
 assert(/Progress: \d{4}-\d{2}-\d{2} last one: adding tests/.test(doingBlock), 'doing block does not show the latest progress line');
 assert(!doingBlock.includes('decided to write the store layer first'), 'doing block still shows the first progress line');
 assert(!doingBlock.includes('store layer finished, tools wired'), 'doing block still shows the middle progress line');
+
+const headingTitle = /^# (.*)$/m.exec(task)?.[1];
+const statusBefore = /^status: "([a-z]+)"$/m.exec(task)?.[1];
+await run('todo_describe', { slug: 'demo-task', description: 'Relabeled row for the panel' });
+const describedTask = readFileSync(resolve(fixture, '_todo/tasks/demo-task.md'), 'utf8');
+assert(describedTask.includes('description: "Relabeled row for the panel"'), 'the description did not reach the task frontmatter');
+assert(/^# (.*)$/m.exec(describedTask)?.[1] === headingTitle, 'todo_describe must not rewrite the heading title');
+assert(/^status: "([a-z]+)"$/m.exec(describedTask)?.[1] === statusBefore, 'todo_describe must not change the state');
+const describedIndex = readFileSync(resolve(fixture, '_todo/tasks.md'), 'utf8');
+assert(describedIndex.includes('Relabeled row for the panel'), 'the index row still shows the old label');
+assert(describedIndex.includes('**demo-task**'), 'the index row lost the stable slug');
+assert(sectionText().includes('Relabeled row for the panel'), 'the injected snapshot did not pick up the new description');
+let rejected = false;
+try {
+  await run('todo_describe', { slug: 'demo-task', description: '   ' });
+} catch {
+  rejected = true;
+}
+assert(rejected, 'todo_describe accepted a blank description');
 
 const after = sectionText();
 assertIntakeRules(after);
