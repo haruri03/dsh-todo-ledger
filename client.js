@@ -28,6 +28,7 @@ window.__ModuleLoader__.load({
         absent: '当前目录没有 _todo/ 或 todo/ 账本',
         inconsistent: '账本不一致：队列、索引与任务详情对不上',
         error: '读取账本失败',
+        stale: '下面是上一次成功读取的结果，正在重试…',
         noSession: '选择一个会话后查看其目录的账本',
         unbound: '此会话目录尚不可用；会话加载后将自动重试',
         empty: '此账本没有已登记的未完成任务；已归档任务不在此显示',
@@ -55,6 +56,7 @@ window.__ModuleLoader__.load({
         absent: 'No _todo/ or todo/ ledger in this directory',
         inconsistent: 'Ledger is inconsistent: queue, index and task files disagree',
         error: 'Could not read the ledger',
+        stale: 'Showing the last successful read; retrying…',
         noSession: 'Select a conversation to view its directory’s ledger',
         unbound: 'This session directory is not available yet; retrying as the session loads',
         empty: 'No active tasks registered in this ledger; archived tasks are not shown',
@@ -221,6 +223,9 @@ window.__ModuleLoader__.load({
       return sessionId;
     }
 
+    const RETRY_START_MS = 1000;
+    const RETRY_MAX_MS = 10000;
+
     function getLedgerResource(sessionId) {
       const key = typeof sessionId === 'string' ? sessionId : '';
       const existing = ledgerResources.get(key);
@@ -237,15 +242,35 @@ window.__ModuleLoader__.load({
         inFlight: false,
         requestToken: 0,
         disposed: false,
+        lastData: null,
+        retryTimer: null,
+        retryDelay: RETRY_START_MS,
       };
 
       const publish = (state) => {
+        if (state.phase === 'ready') resource.lastData = state.data;
         resource.state = state;
         for (const listener of resource.listeners) {
           try {
             listener(state);
           } catch {}
         }
+      };
+
+      const clearRetry = () => {
+        if (resource.retryTimer === null) return;
+        clearTimeout(resource.retryTimer);
+        resource.retryTimer = null;
+      };
+
+      const scheduleRetry = () => {
+        if (resource.disposed || resource.references === 0 || resource.retryTimer !== null) return;
+        const delay = resource.retryDelay;
+        resource.retryDelay = Math.min(resource.retryDelay * 2, RETRY_MAX_MS);
+        resource.retryTimer = setTimeout(() => {
+          resource.retryTimer = null;
+          void read();
+        }, delay);
       };
 
       const read = async () => {
@@ -256,10 +281,20 @@ window.__ModuleLoader__.load({
         resource.controller = controller;
         try {
           const data = await load(resource.sessionId, controller.signal);
-          if (!resource.disposed && resource.requestToken === token) publish({ phase: 'ready', data });
+          if (!resource.disposed && resource.requestToken === token) {
+            resource.retryDelay = RETRY_START_MS;
+            clearRetry();
+            publish({ phase: 'ready', data });
+          }
         } catch (error) {
           if (!resource.disposed && resource.requestToken === token && error?.name !== 'AbortError') {
-            publish({ phase: 'error', message: String(error?.message ?? error) });
+            publish({
+              phase: 'error',
+              message: String(error?.message ?? error),
+              stale: resource.lastData !== null,
+              data: resource.lastData,
+            });
+            scheduleRetry();
           }
         } finally {
           if (resource.requestToken === token) {
@@ -271,6 +306,12 @@ window.__ModuleLoader__.load({
 
       resource.refresh = () => {
         void read();
+      };
+      resource.onReconnect = () => {
+        void read();
+      };
+      resource.onVisibility = () => {
+        if (typeof document === 'undefined' || document.visibilityState !== 'hidden') void read();
       };
       resource.subscribe = (listener) => {
         resource.listeners.add(listener);
@@ -284,12 +325,17 @@ window.__ModuleLoader__.load({
             if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
             void read();
           }, VISIBLE_REFRESH_MS);
+          if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') window.addEventListener('online', resource.onReconnect);
+          if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') document.addEventListener('visibilitychange', resource.onVisibility);
         }
         return () => {
           resource.listeners.delete(listener);
           resource.references = Math.max(0, resource.references - 1);
           if (resource.references !== 0) return;
           resource.disposed = true;
+          clearRetry();
+          if (typeof window !== 'undefined' && typeof window.removeEventListener === 'function') window.removeEventListener('online', resource.onReconnect);
+          if (typeof document !== 'undefined' && typeof document.removeEventListener === 'function') document.removeEventListener('visibilitychange', resource.onVisibility);
           if (resource.timer !== null) clearInterval(resource.timer);
           resource.timer = null;
           resource.requestToken += 1;
@@ -447,7 +493,9 @@ window.__ModuleLoader__.load({
 
       const note = React.useMemo(() => {
         if (state.phase === 'loading') return translate('loading');
-        if (state.phase === 'error') return `${translate('error')}: ${state.message}`;
+        if (state.phase === 'error') {
+          if (state.stale !== true || data === null) return `${translate('error')}: ${state.message}`;
+        }
         if (data === null) return translate('error');
         if (data.kind === 'absent') return translate('absent');
         if (data.kind === 'inconsistent') return translate('inconsistent');
@@ -489,6 +537,9 @@ window.__ModuleLoader__.load({
             ),
           ),
         ),
+        state.phase === 'error' && data !== null
+          ? h('div', { style: { ...styles.note, color: TONE.error }, 'data-todo-ledger-stale': '' }, translate('stale'))
+          : null,
         note === null
           ? h(
               'div',
