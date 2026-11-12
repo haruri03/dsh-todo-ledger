@@ -24,6 +24,19 @@ The one-line label a task shows in the panel can now be edited on its own, witho
 - Dependency handling is unchanged: `depends_on` and `blocker_cause` remain the only fields the
   dependency graph reads, so renaming a label never moves a task in or out of a blocked state.
 
+### Fixed
+
+- **The panel keeps its last good read** — a failed poll no longer replaces the task list with an error
+  line. The previous rows stay on screen under a "showing the last successful read" marker, and the panel
+  retries by itself: 1s, 2s, 4s, capped at 10s, reset as soon as a read succeeds.
+- **A returning connection or tab reads immediately** — the panel listens for `online` and
+  `visibilitychange` instead of waiting for the next five-second poll.
+
+### Notes
+
+- A failed read is now a degraded state rather than an empty one: the ledger stays visible, so a restart
+  or a dropped connection no longer looks like a lost queue.
+
 ## [0.4.1] - 2026-10-26
 
 Fixes a ledger being read from the wrong session, and states the register-before-implementing intent
