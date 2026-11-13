@@ -32,6 +32,26 @@ try {
   coldSessions.list = sessions.list;
   assert.equal(projectionBody(coldSessions, 'sessionId=session-1').kind, 'ready');
 
+  const viaGet = { get: () => ({ id: 'session-1', header: { cwd: fixture } }) };
+  assert.equal(projectionBody(viaGet, 'sessionId=session-1').kind, 'ready');
+
+  const listWithoutCwd = { list: () => [{ id: 'session-1', header: {} }] };
+  const workingDirectory = { get: () => ({ cwd: fixture }) };
+  assert.equal(projectionBody(listWithoutCwd, 'sessionId=session-1').kind, 'unbound');
+  assert.equal(projectionBody(listWithoutCwd, 'sessionId=session-1', workingDirectory).kind, 'ready');
+
+  const aliased = { list: () => [{ id: 'session-1', workspace: { workingDirectory: fixture } }] };
+  assert.equal(projectionBody(aliased, 'sessionId=session-1').kind, 'ready');
+
+  const stale = { list: () => [{ id: 'session-1', header: { cwd: join(fixture, 'gone') } }] };
+  assert.equal(projectionBody(stale, 'sessionId=session-1').kind, 'unbound');
+
+  const throwing = {
+    get() { throw new Error('gone'); },
+    list() { throw new Error('gone'); },
+  };
+  assert.equal(projectionBody(throwing, 'sessionId=session-1').kind, 'unbound');
+
   const empty = mkdtempSync(join(tmpdir(), 'todo-bridge-empty-'));
   try {
     assert.equal(projectionBody(undefined, `cwd=${encodeURIComponent(empty)}`).kind, 'absent');
