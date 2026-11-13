@@ -10,12 +10,14 @@ rmSync(fixture, { recursive: true, force: true });
 mkdirSync(fixture, { recursive: true });
 
 const tools = new Map();
+const routes = new Map();
 let section;
 let turnStopping;
 const ctx = {
   get: (name) => (name === 'workingDirectory' ? { get: () => fixture } : undefined),
   tools: { register: (definition) => tools.set(definition.name, definition) },
   systemPrompt: { section: (definition) => { section = definition; } },
+  webServer: { register: (route) => { routes.set(route.path, route); return () => {}; } },
   on: (event, handler) => { if (event === 'agent/turn-stopping') turnStopping = handler; },
 };
 
@@ -26,6 +28,9 @@ const assert = (condition, message) => { if (!condition) fail(message); };
 assert(section, 'no prompt section registered');
 assert(typeof turnStopping === 'function', 'no turn-stopping auto-log registered');
 assert(section.name === 'todo-ledger' && section.order === 180, 'prompt section name/order is wrong');
+assert(routes.has('/todo-ledger/projection'), 'projection route was not registered');
+assert(routes.has('/todo-ledger/complete'), 'complete route was not registered');
+assert(routes.get('/todo-ledger/projection').kind === 'prefix', 'projection route must be a prefix route');
 for (const name of ['todo_init','todo_list','todo_show','todo_add','todo_describe','todo_status','todo_complete','todo_archive','todo_note','todo_checkpoint','todo_doctor','todo_snapshot']) {
   assert(tools.has(name), `missing tool ${name}`);
   const t = tools.get(name);
