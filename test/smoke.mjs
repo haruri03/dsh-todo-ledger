@@ -13,13 +13,20 @@ const tools = new Map();
 const routes = new Map();
 let section;
 let turnStopping;
-const ctx = {
+const services = {
   get: (name) => (name === 'workingDirectory' ? { get: () => fixture } : undefined),
+  sessions: { list: () => [], get: () => undefined },
   tools: { register: (definition) => tools.set(definition.name, definition) },
   systemPrompt: { section: (definition) => { section = definition; } },
   webServer: { register: (route) => { routes.set(route.path, route); return () => {}; } },
   on: (event, handler) => { if (event === 'agent/turn-stopping') turnStopping = handler; },
 };
+const ctx = new Proxy(services, {
+  get(target, key) {
+    if (typeof key === 'symbol' || key in target) return Reflect.get(target, key);
+    throw new TypeError(`service ${String(key)} is not injected`);
+  },
+});
 
 plugin.apply(ctx, {});
 const fail = (message) => { throw new Error(message); };
