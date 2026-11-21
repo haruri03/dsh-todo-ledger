@@ -4,6 +4,39 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.3] - 2026-11-21
+
+The sidebar panel binds to the session's own directory again, and the read-only context reader returns a
+payload the host accepts for every action. No format or API break.
+
+### Added
+
+- **`todo_doctor` reports route registration** — its output carries a `routes` map with `registered`,
+  `pending` or `failed: <reason>` for the projection route, the complete route and the prompt section, so
+  a panel that never loads names the step that broke instead of only reporting `unbound`.
+
+### Fixed
+
+- **The panel resolves the session directory through every source the host offers** — the lookup read
+  only `sessions.list()` and `header.cwd`, so a session that reported its directory anywhere else stayed
+  `unbound` forever. It now falls back from `sessions.get(id)` to a matching `list()` row to
+  `workingDirectory.get(id)`, accepts the usual field aliases, and ignores a candidate whose path no
+  longer exists.
+- **Both panel routes are registered again** — current hosts have no `ctx.effect`, so the two
+  `webServer.register` calls threw and their empty `catch` swallowed the error: the projection and
+  complete routes never existed, so every panel read failed. Registration calls `webServer.register`
+  directly now, and a failure is recorded instead of disappearing.
+- **Optional services are read through `ctx.get`** — the routes took `sessions` straight off `ctx`, whose
+  proxy throws on properties the plugin did not declare; both routes now receive `sessions` and
+  `workingDirectory` explicitly, and the plugin declares `workingDirectory` in `inject`.
+- **`todo_context` always returns JSON-safe output** — `action=task` and `action=tasks` failed with
+  `tool "todo_context" returned invalid output: value is not lossless JSON` because optional fields
+  (`section`, `dependsOn`, `blockerCause`, and per-row `progress` / `blocker`) were sent as `undefined`.
+  The reader now drops undefined fields and normalizes non-finite numbers before returning, so every
+  action yields a payload that survives a JSON round-trip.
+- **`action=log` accepts the `ref` selector** — the tool schema advertised `ref` while the reader only
+  read `id`, so the selector rejected every call; both names now work.
+
 ## [0.4.2] - 2026-11-11
 
 The one-line label a task shows in the panel can now be edited on its own, without touching the task.
