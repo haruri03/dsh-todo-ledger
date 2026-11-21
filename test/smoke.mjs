@@ -14,7 +14,7 @@ const routes = new Map();
 let section;
 let turnStopping;
 const services = {
-  get: (name) => (name === 'workingDirectory' ? { get: () => fixture } : undefined),
+  workingDirectory: { get: () => fixture },
   sessions: { list: () => [], get: () => undefined },
   tools: { register: (definition) => tools.set(definition.name, definition) },
   systemPrompt: { section: (definition) => { section = definition; } },
@@ -106,6 +106,37 @@ assert(!progressSection.includes('(where it stands, with numbers)'), 'the placeh
 const shown = await run('todo_show', { slug: 'demo-task' });
 assert(shown.content.includes('decided to write the store layer first'), 'todo_show does not show the progress');
 
+const { readContext } = await import('../lib/context-reader.js');
+const lossless = (value) => {
+  if (value === undefined) return false;
+  if (Array.isArray(value)) return value.every(lossless);
+  if (value && typeof value === 'object') return Object.keys(value).every((key) => lossless(value[key]));
+  return true;
+};
+for (const request of [
+  { action: 'overview' },
+  { action: 'tasks' },
+  { action: 'task', slug: 'demo-task' },
+  { action: 'checkpoint' },
+  { action: 'logs' },
+]) {
+  const envelope = readContext({ ...request, root: fixture });
+  assert(envelope.status === 'ready', `todo_context ${request.action} did not return ready`);
+  assert(lossless(envelope), `todo_context ${request.action} output is not lossless JSON (undefined value)`);
+  assert(JSON.stringify(JSON.parse(JSON.stringify(envelope))) === JSON.stringify(envelope), `todo_context ${request.action} output does not survive a JSON round-trip`);
+}
+const firstLogId = readContext({ action: 'logs', root: fixture }).data.entries[0]?.id;
+assert(firstLogId !== undefined, 'logs page has no entry to read');
+const logEntryEnvelope = readContext({ action: 'log', id: firstLogId, root: fixture });
+assert(logEntryEnvelope.status === 'ready' && lossless(logEntryEnvelope), 'todo_context log output is not lossless JSON');
+const toolContext = await run('todo_context', { action: 'task', slug: 'demo-task' });
+assert(toolContext.envelope.status === 'ready', 'todo_context tool did not return ready for action=task');
+assert(lossless(toolContext.envelope), 'todo_context tool output is not lossless JSON (undefined value)');
+const refEnvelope = readContext({ action: 'log', ref: firstLogId, root: fixture });
+assert(refEnvelope.status === 'ready', 'action=log must accept the ref selector the tool schema advertises');
+const refTool = await run('todo_context', { action: 'log', ref: firstLogId });
+assert(refTool.envelope.status === 'ready' && lossless(refTool.envelope), 'todo_context ref selector output is not lossless JSON');
+
 await run('todo_note', { note: 'store layer finished, tools wired', slug: 'demo-task' });
 await run('todo_note', { note: 'last one: adding tests', slug: 'demo-task' });
 const multiSnap = sectionText();
@@ -155,11 +186,18 @@ const tripleSnap = sectionText();
 assert(!tripleSnap.includes('{{'), 'triple braces must be fully neutralized');
 assert(tripleSnap.includes('{ { {setvar::x::y}}}'), 'triple-brace sanitizing must stay readable');
 
-const originalGet = ctx.get;
-ctx.get = () => { throw new Error('simulated host failure'); };
+const originalWorkingDirectory = services.workingDirectory;
+Object.defineProperty(services, 'workingDirectory', {
+  configurable: true,
+  get() { throw new Error('simulated host failure'); },
+});
 const fallback = sectionText();
 assert(fallback.includes('section unavailable'), 'a host failure must return a safe fallback section');
-ctx.get = originalGet;
+Object.defineProperty(services, 'workingDirectory', {
+  configurable: true,
+  writable: true,
+  value: originalWorkingDirectory,
+});
 
 await run('todo_add', { slug: 'bare-task', title: 'Task without progress', status: 'doing' });
 const bareSnap = sectionText();

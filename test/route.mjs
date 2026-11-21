@@ -4,7 +4,7 @@ const mod = await import('../lib/index.js');
 
 assert.deepEqual(
   [...mod.inject].sort(),
-  ['sessions', 'systemPrompt', 'tools', 'webServer'],
+  ['sessions', 'systemPrompt', 'tools', 'webServer', 'workingDirectory'],
   'the plugin must inject webServer and sessions, otherwise the projection route is never registered',
 );
 
