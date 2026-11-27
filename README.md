@@ -83,7 +83,7 @@ Tarball URLs are accepted too. To update, remove and reinstall, or wait for an u
 After installation, every new session carries a `[todo-ledger · cross-session tasks and context]`
 prompt section, and the tool list gains:
 
-`todo_context / todo_list / todo_add / todo_show / todo_status / todo_complete / todo_archive / todo_note / todo_checkpoint / todo_snapshot / todo_doctor / todo_init`
+`todo_context / todo_list / todo_add / todo_show / todo_status / todo_complete / todo_archive / todo_remove / todo_note / todo_checkpoint / todo_snapshot / todo_doctor / todo_init`
 
 No restart is required.
 
@@ -192,6 +192,7 @@ flowchart LR
 | `todo_status` | Change state and sync the task frontmatter, index, and queue |
 | `todo_complete` | Close and archive a task; requires `evidence` + `signoff` |
 | `todo_archive` | Abandon a task; additionally requires `reason` |
+| `todo_remove` | Delete one entry outright — active or already archived — from the queue, the index and disk; requires `reason`. Nothing is kept, so prefer `todo_complete` or `todo_archive` when the work needs a record |
 | `todo_note` | Append to `context/log.md`; with `slug`, insert at the end of that task's `## Progress` section (the placeholder is removed on first write); with `state`, advance the state machine in the same call |
 | `todo_checkpoint` | Overwrite `context/now.md`: current goal / next step / key files |
 | `todo_snapshot` | Read-only: return the snapshot that would be injected into the prompt (check whether the ledger is stale) |
@@ -355,7 +356,7 @@ Without `root`, the plugin searches upward from the session working directory fo
 node test/smoke.mjs
 ```
 
-Coverage: prompt section registration and snapshot rendering, the schemas of all 13 tools, the full
+Coverage: prompt section registration and snapshot rendering, the schemas of all 14 tools, the full
 init → add → status → note → checkpoint → doctor → complete/archive flow, and rejection of a close
 without `signoff`. When `TODO_CLI` points at an external `todo.js`, the test also verifies
 `list`/`doctor` interoperability.

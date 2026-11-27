@@ -73,7 +73,7 @@ dsh plugin --profile <profile> add dsh-todo-ledger
 也支持 tarball URL。更新时先卸载再安装，或等待上游发版。
 
 装好后新会话的系统提示里会出现「【todo-ledger · 跨会话任务与上下文】」段；工具列表里多出
-`todo_context / todo_list / todo_add / todo_show / todo_status / todo_complete / todo_archive / todo_note / todo_checkpoint / todo_snapshot / todo_doctor / todo_init`。
+`todo_context / todo_list / todo_add / todo_show / todo_status / todo_complete / todo_archive / todo_remove / todo_note / todo_checkpoint / todo_snapshot / todo_doctor / todo_init`。
 无需重启。
 
 ## 目录与文件格式
@@ -176,6 +176,7 @@ flowchart LR
 | `todo_status` | 改状态，同步详情 frontmatter / 索引 / 队列 |
 | `todo_complete` | 结案归档，必须 `evidence` + `signoff` |
 | `todo_archive` | 放弃归档，另需 `reason` |
+| `todo_remove` | 直接删除一个条目（未归档或已归档都行）：同时清掉队列、`tasks.md` 索引和磁盘文件，另需 `reason`；删掉不留痕，需要留记录时用 `todo_complete` 或 `todo_archive` |
 | `todo_note` | 往 `context/log.md` 追加流水；带 `slug` 时**插入该任务「## 进度」节末尾**（首次写入清掉模板占位句）；带 `state` 时**顺手推进状态机**（治“只 note 不改状态”） |
 | `todo_checkpoint` | 覆盖写 `context/now.md`：当前目标 / 下一步 / 关键文件 |
 | `todo_snapshot` | 只读：返回当前会注入提示词的那份快照（用来确认账本是不是又旧了） |
@@ -310,7 +311,7 @@ graph LR
 node test/smoke.mjs
 ```
 
-覆盖：提示段注册与快照渲染、13 个工具 schema、init→add→status→note→checkpoint→doctor→complete/archive
+覆盖：提示段注册与快照渲染、14 个工具 schema、init→add→status→note→checkpoint→doctor→complete/archive
 全流程、缺 `signoff` 拒绝结案。设置 `TODO_CLI` 时额外验证与外部 `todo.js` 的 `list`/`doctor` 互通。
 
 ## 卸载

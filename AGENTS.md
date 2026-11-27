@@ -4,7 +4,7 @@ Self-contained plugin repository that turns a todo ledger into a host-level capa
 
 ## Ownership
 
-In scope: the prompt-section rules and snapshot injection, the 13 `todo_*` tools, the read-only context CLI (`todo-context`), the ledger file format, the turn-end auto-log.
+In scope: the prompt-section rules and snapshot injection, the 14 `todo_*` tools, the read-only context CLI (`todo-context`), the ledger file format, the turn-end auto-log.
 Out of scope: the external todo CLI implementation; both share one Markdown format, so a format change must be verified for external compatibility. The bundled `todo-context` CLI only reads the ledger that this plugin writes.
 
 ## Layout
@@ -42,13 +42,13 @@ node test/smoke.mjs
 node bin/todo-context.mjs --action overview
 ```
 
-- Covers: the 13 tool schemas, the prompt-section snapshot, the full lifecycle, and refusal to close a task without signoff.
+- Covers: the 14 tool schemas, the prompt-section snapshot, the full lifecycle, and refusal to close a task without signoff.
 - The CLI check is a read-only smoke run: it must print a `ready` envelope and exit 0. `--json` returns the same envelope the `todo_context` tool returns.
 - The interop check against the external todo CLI needs `TODO_CLI` pointing at its script; it is skipped when unset.
 
 ## Red lines
 
-- The ledger markdown is never hand-edited: the status lines in `todo.md`, the `tasks.md` index, and a task file's frontmatter are owned by the tools, every state change goes through `todo_add` / `todo_status` / `todo_complete` / `todo_archive`, and the panel label goes through `todo_describe`, so all three stay in sync.
+- The ledger markdown is never hand-edited: the status lines in `todo.md`, the `tasks.md` index, and a task file's frontmatter are owned by the tools, every state change goes through `todo_add` / `todo_status` / `todo_complete` / `todo_archive` / `todo_remove`, and the panel label goes through `todo_describe`, so all three stay in sync.
 - A closure always carries `evidence` and `signoff`; do not relax it.
 - Changing the prompt section or the snapshot format means updating the README and the test in the same change.
 - No personal information and no machine-absolute paths; examples use `<repo-root>`.

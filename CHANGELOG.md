@@ -4,6 +4,23 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **`todo_remove` deletes one entry outright** — an agent that judged a task wrong would rather leave it
+  in place than delete ledger files by hand. The tool drops the queue line, the `tasks.md` row and the
+  detail file in one call, and deletes an archived record when that is where the entry lives. It requires
+  a `reason`, which is written to `context/log.md`; nothing else is kept, so `todo_complete` and
+  `todo_archive` stay the tools for work that needs a record.
+
+### Changed
+
+- **A parent agent's tasks are read-only without explicit confirmation** — reusing the entries of a
+  parent session or another session is allowed, but changing, closing, archiving or removing them now
+  requires the user to confirm it in the conversation. The prompt section leaves that to the agent's
+  judgement no longer, and a delegated task is explicitly not permission to edit the parent ledger.
+
 ## [0.4.3] - 2026-11-21
 
 The sidebar panel binds to the session's own directory again, and the read-only context reader returns a

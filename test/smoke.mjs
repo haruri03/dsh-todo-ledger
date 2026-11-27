@@ -38,7 +38,7 @@ assert(section.name === 'todo-ledger' && section.order === 180, 'prompt section 
 assert(routes.has('/todo-ledger/projection'), 'projection route was not registered');
 assert(routes.has('/todo-ledger/complete'), 'complete route was not registered');
 assert(routes.get('/todo-ledger/projection').kind === 'prefix', 'projection route must be a prefix route');
-for (const name of ['todo_init','todo_list','todo_show','todo_add','todo_describe','todo_status','todo_complete','todo_archive','todo_note','todo_checkpoint','todo_doctor','todo_snapshot']) {
+for (const name of ['todo_init','todo_list','todo_show','todo_add','todo_describe','todo_status','todo_complete','todo_archive','todo_remove','todo_note','todo_checkpoint','todo_doctor','todo_snapshot']) {
   assert(tools.has(name), `missing tool ${name}`);
   const t = tools.get(name);
   assert(typeof t.description === 'string' && t.description.length > 10, `${name} has no description`);
@@ -54,6 +54,8 @@ const sectionText = () => section.text({ agent: { session: {} } });
 
 const before = sectionText();
 assert(before.includes('**no** `_todo/`'), 'the uninitialized prompt section must state that no `_todo/` exists');
+assert(before.includes('todo_remove'), 'the prompt section must list todo_remove among the write tools');
+assert(before.includes('not permission to edit the parent ledger'), 'the prompt section must gate parent-ledger edits on the user confirmation');
 
 await run('todo_init', {});
 assert(existsSync(resolve(fixture, '_todo/tasks.md')), 'init did not create tasks.md');
@@ -311,6 +313,27 @@ assert(!existsSync(resolve(fixture, '_todo/tasks/done-task.md')), 'complete did 
 
 await run('todo_archive', { slug: 'drop-task', evidence: 'not worth it', signoff: 'drop it', reason: 'low priority' });
 assert(existsSync(resolve(fixture, '_todo/archived/drop-task.md')), 'archive did not archive');
+
+await run('todo_add', { slug: 'scratch-task', title: 'Scratch entry' });
+assert(existsSync(resolve(fixture, '_todo/tasks/scratch-task.md')), 'scratch task was not created');
+const removed = await run('todo_remove', { slug: 'scratch-task', reason: 'created by mistake' });
+assert(typeof removed.message === 'string' && removed.message.includes('created by mistake'), 'remove did not report the reason');
+assert(!existsSync(resolve(fixture, '_todo/tasks/scratch-task.md')), 'remove did not delete the detail file');
+assert(!readFileSync(resolve(fixture, '_todo/tasks.md'), 'utf8').includes('scratch-task'), 'remove left the index row behind');
+assert(!readFileSync(resolve(fixture, '_todo/todo.md'), 'utf8').includes('scratch-task'), 'remove left the queue line behind');
+
+let removeNeedsReason = false;
+try { await run('todo_remove', { slug: 'demo-task' }); } catch { removeNeedsReason = true; }
+assert(removeNeedsReason, 'remove accepted a call without reason');
+assert(existsSync(resolve(fixture, '_todo/tasks/demo-task.md')), 'a refused remove must leave the task in place');
+
+let removeUnknown = false;
+try { await run('todo_remove', { slug: 'nosuch-task', reason: 'probe' }); } catch { removeUnknown = true; }
+assert(removeUnknown, 'remove accepted an unknown slug');
+
+await run('todo_remove', { slug: 'drop-task', reason: 'the archived record was a mistake too' });
+assert(!existsSync(resolve(fixture, '_todo/archived/drop-task.md')), 'remove did not delete the archived record');
+assert(readFileSync(resolve(fixture, '_todo/context/log.md'), 'utf8').includes('todo_remove drop-task'), 'remove was not written to the ledger log');
 
 const finalDoctor = await run('todo_doctor', {});
 assert(finalDoctor.ok === true, `final doctor failed: ${finalDoctor.errors.join('; ')}`);
